@@ -58,6 +58,7 @@ func accept(server net.Listener, newConnections chan net.Conn) {
 		conn, err := server.Accept()
 		if err != nil {
 			fmt.Println(err)
+			continue
 		}
 		newConnections <- conn
 	}
