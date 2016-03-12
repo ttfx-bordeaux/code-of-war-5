@@ -8,14 +8,24 @@ import (
 )
 
 type Message struct {
-	Connection net.Conn
-	Data       []byte
+	Client Client
+	Data   []byte
+}
+
+type Client struct {
+	Conn net.Conn
+	Name string
+	Id   string
+}
+
+func (c *Client) ToString() string {
+	return fmt.Sprintf("Client[Id: %s, Name: %s, Address: %s]", c.Id, c.Name, c.Conn.RemoteAddr())
 }
 
 func main() {
-	clients := make(map[net.Conn]string)
+	clients := make(map[net.Conn]Client)
 	newConnections := make(chan net.Conn)
-	deadConnections := make(chan net.Conn)
+	deadClients := make(chan Client)
 	messages := make(chan Message)
 
 	server, err := net.Listen("tcp", ":3000")
@@ -32,11 +42,11 @@ func main() {
 		case conn := <-newConnections:
 			addr := conn.RemoteAddr().String()
 			log.Printf("Accepted new client, %v", addr)
-			clients[conn] = addr
-			go read(conn, messages, deadConnections)
-		case conn := <-deadConnections:
-			log.Printf("Client %v disconnected", clients[conn])
-			delete(clients, conn)
+			clients[conn] = Client{Conn: conn}
+			go read(clients[conn], messages, deadClients)
+		case client := <-deadClients:
+			log.Printf("%v disconnected", client.ToString())
+			delete(clients, client.Conn)
 		case message := <-messages:
 			go handle(message)
 		}
@@ -53,18 +63,18 @@ func accept(server net.Listener, newConnections chan net.Conn) {
 	}
 }
 
-func read(conn net.Conn, messages chan Message, deadConnections chan net.Conn) {
-	reader := bufio.NewReader(conn)
+func read(client Client, messages chan Message, deadClients chan Client) {
+	reader := bufio.NewReader(client.Conn)
 	for {
 		incoming, err := reader.ReadString('\n')
 		if err != nil {
 			break
 		}
-		messages <- Message{conn, []byte(incoming)[0 : len(incoming)-1]}
+		messages <- Message{client, []byte(incoming)[0 : len(incoming)-1]}
 	}
-	deadConnections <- conn
+	deadClients <- client
 }
 
 func handle(mess Message) {
-	log.Printf("From %v : [%v] ", mess.Connection.RemoteAddr(), string(mess.Data))
+	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), string(mess.Data))
 }
