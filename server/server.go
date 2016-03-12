@@ -7,10 +7,16 @@ import (
 	"net"
 )
 
+type Message struct {
+	Connection net.Conn
+	Data       []byte
+}
+
 func main() {
 	clients := make(map[net.Conn]string)
 	newConnections := make(chan net.Conn)
 	deadConnections := make(chan net.Conn)
+	messages := make(chan Message)
 
 	server, err := net.Listen("tcp", ":3000")
 	if err != nil {
@@ -27,10 +33,12 @@ func main() {
 			addr := conn.RemoteAddr().String()
 			log.Printf("Accepted new client, %v", addr)
 			clients[conn] = addr
-			go read(conn, deadConnections)
+			go read(conn, messages, deadConnections)
 		case conn := <-deadConnections:
 			log.Printf("Client %v disconnected", clients[conn])
 			delete(clients, conn)
+		case message := <-messages:
+			go handle(message)
 		}
 	}
 }
@@ -45,14 +53,18 @@ func accept(server net.Listener, newConnections chan net.Conn) {
 	}
 }
 
-func read(conn net.Conn, deadConnections chan net.Conn) {
+func read(conn net.Conn, messages chan Message, deadConnections chan net.Conn) {
 	reader := bufio.NewReader(conn)
 	for {
 		incoming, err := reader.ReadString('\n')
 		if err != nil {
 			break
 		}
-		log.Printf("Received : %v", incoming)
+		messages <- Message{conn, []byte(incoming)[0 : len(incoming)-1]}
 	}
 	deadConnections <- conn
+}
+
+func handle(mess Message) {
+	log.Printf("From %v : [%v] ", mess.Connection.RemoteAddr(), string(mess.Data))
 }
