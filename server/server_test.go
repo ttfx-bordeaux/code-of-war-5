@@ -25,18 +25,7 @@ func TestAccept(t *testing.T) {
 }
 
 func TestDontAccept(t *testing.T) {
-	done := make(chan bool)
-	connections := make(chan net.Conn)
-
-	go func() {
-		go accept(&stubListener{fail: true}, connections)
-		done <- true
-	}()
-
-	<-done
-	if len(connections) > 0 {
-		t.Fail()
-	}
+	t.Fail()
 }
 
 type stubListener struct {
