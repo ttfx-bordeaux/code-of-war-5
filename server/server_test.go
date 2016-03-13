@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -55,6 +57,26 @@ func TestFailLaunchServer(t *testing.T) {
 	launchServer("-1")
 }
 
+func TestReadMessageFromClient(t *testing.T) {
+	done := make(chan bool)
+	deadClients := make(chan Client)
+	messages := make(chan Message)
+	mockConn := newStubConn()
+	var msg Message
+
+	go func() {
+		msg = <-messages
+		done <- true
+	}()
+	go read(Client{Conn: mockConn}, messages, deadClients)
+	fmt.Fprintf(mockConn.ClientWriter, "hello\n")
+
+	<-done
+	if string(msg.Data) != "hello" {
+		t.Fail()
+	}
+}
+
 type stubListener struct {
 	fail bool
 }
@@ -69,16 +91,40 @@ func (m stubListener) Close() error   { return nil }
 func (m stubListener) Addr() net.Addr { return nil }
 
 type stubConn struct {
+	ServerReader *io.PipeReader
+	ServerWriter *io.PipeWriter
+	ClientReader *io.PipeReader
+	ClientWriter *io.PipeWriter
 }
 
-func (m stubConn) RemoteAddr() net.Addr               { return stubAddr{} }
-func (m stubConn) Write(b []byte) (n int, err error)  { return 0, nil }
+func newStubConn() stubConn {
+	serverRead, clientWrite := io.Pipe()
+	clientRead, serverWrite := io.Pipe()
+	return stubConn{
+		ServerReader: serverRead,
+		ServerWriter: serverWrite,
+		ClientReader: clientRead,
+		ClientWriter: clientWrite,
+	}
+}
+
+func (m stubConn) Close() error {
+	if err := m.ServerWriter.Close(); err != nil {
+		return err
+	}
+	if err := m.ServerReader.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+func (m stubConn) Read(data []byte) (n int, err error)  { return m.ServerReader.Read(data) }
+func (m stubConn) Write(data []byte) (n int, err error) { return m.ServerWriter.Write(data) }
+func (m stubConn) RemoteAddr() net.Addr                 { return stubAddr{} }
+
 func (m stubConn) SetDeadline(t time.Time) error      { return nil }
 func (m stubConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m stubConn) SetWriteDeadline(t time.Time) error { return nil }
-func (m stubConn) Read(b []byte) (n int, err error)   { return 0, nil }
 func (m stubConn) LocalAddr() net.Addr                { return nil }
-func (m stubConn) Close() error                       { return nil }
 
 type stubAddr struct {
 }
