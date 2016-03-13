@@ -39,6 +39,22 @@ func TestDontAccept(t *testing.T) {
 	}
 }
 
+func TestLaunchServer(t *testing.T) {
+	srv := launchServer("2000")
+	if srv.Addr().String() != "[::]:2000" {
+		t.Fail()
+	}
+}
+
+func TestFailLaunchServer(t *testing.T) {
+	defer func() {
+		if err := recover(); err == nil {
+			t.Fail()
+		}
+	}()
+	launchServer("-1")
+}
+
 type stubListener struct {
 	fail bool
 }
