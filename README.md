@@ -1,4 +1,4 @@
-# Code of War : Enlarge your tower
+# Code of War : Enlarge your tower ![](https://travis-ci.org/ttfx-bordeaux/code-of-war-5.svg?branch=master)
 ![](http://www.codeofwar.net/sites/all/themes/cow/images/xlogo.png.pagespeed.ic.n8tK1fUftd.png)
 
 ## Staff : 
