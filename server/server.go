@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 )
 
 type Message struct {
@@ -23,34 +24,34 @@ func (c *Client) ToString() string {
 }
 
 func main() {
-	clients := make(map[net.Conn]Client)
 	newConnections := make(chan net.Conn)
 	deadClients := make(chan Client)
 	messages := make(chan Message)
 
-	server, err := net.Listen("tcp", ":3000")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	log.Printf("Launching server on %s", server.Addr())
-
+	port := loadArg("-p", "3000")
+	server := launchServer(port)
 	go accept(server, newConnections)
 
 	for {
 		select {
 		case conn := <-newConnections:
-			addr := conn.RemoteAddr().String()
-			log.Printf("Accepted new client, %v", addr)
-			clients[conn] = Client{Conn: conn}
-			go read(clients[conn], messages, deadClients)
+			log.Printf("Accepted new client, %v", conn.RemoteAddr().String())
+			go read(Client{Conn: conn}, messages, deadClients)
 		case client := <-deadClients:
 			log.Printf("%v disconnected", client.ToString())
-			delete(clients, client.Conn)
 		case message := <-messages:
-			go handle(message)
+			go handleMessage(message)
 		}
 	}
+}
+
+func launchServer(port string) net.Listener {
+	server, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Launching server on %s", server.Addr())
+	return server
 }
 
 func accept(server net.Listener, newConnections chan net.Conn) {
@@ -75,6 +76,18 @@ func read(client Client, messages chan Message, deadClients chan Client) {
 	deadClients <- client
 }
 
-func handle(mess Message) {
+func handleMessage(mess Message) {
 	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), string(mess.Data))
+}
+
+func loadArg(command, defaultValue string) (port string) {
+	port = defaultValue
+	args := os.Args
+	for i, arg := range args {
+		switch {
+		case arg == command:
+			port = args[i+1]
+		}
+	}
+	return
 }
