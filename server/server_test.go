@@ -1,34 +1,56 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"testing"
 	"time"
 )
 
 func TestAccept(t *testing.T) {
-	var conn net.Conn
 	done := make(chan bool)
 	connections := make(chan net.Conn)
 
+	var conn net.Conn
 	go func() {
 		conn = <-connections
 		done <- true
 	}()
 	go accept(&stubListener{}, connections)
-	<-done
 
+	<-done
 	if conn.RemoteAddr().String() != "1.2.3.4:5" {
 		t.Fail()
 	}
 }
 
-type stubListener struct {
+func TestDontAccept(t *testing.T) {
+	done := make(chan bool)
+	connections := make(chan net.Conn)
+
+	go func() {
+		go accept(&stubListener{fail: true}, connections)
+		done <- true
+	}()
+
+	<-done
+	if len(connections) > 0 {
+		t.Fail()
+	}
 }
 
-func (m stubListener) Accept() (net.Conn, error) { return stubConn{}, nil }
-func (m stubListener) Close() error              { return nil }
-func (m stubListener) Addr() net.Addr            { return nil }
+type stubListener struct {
+	fail bool
+}
+
+func (m stubListener) Accept() (net.Conn, error) {
+	if m.fail {
+		return nil, errors.New("fail")
+	}
+	return stubConn{}, nil
+}
+func (m stubListener) Close() error   { return nil }
+func (m stubListener) Addr() net.Addr { return nil }
 
 type stubConn struct {
 }
