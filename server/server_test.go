@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"testing"
-	"time"
 )
 
 func TestAccept(t *testing.T) {
@@ -78,6 +77,7 @@ func TestReadMessageFromClient(t *testing.T) {
 }
 
 type stubListener struct {
+	net.Listener
 	fail bool
 }
 
@@ -87,10 +87,9 @@ func (m stubListener) Accept() (net.Conn, error) {
 	}
 	return stubConn{}, nil
 }
-func (m stubListener) Close() error   { return nil }
-func (m stubListener) Addr() net.Addr { return nil }
 
 type stubConn struct {
+	net.Conn
 	ServerReader *io.PipeReader
 	ServerWriter *io.PipeWriter
 	ClientReader *io.PipeReader
@@ -120,11 +119,6 @@ func (m stubConn) Close() error {
 func (m stubConn) Read(data []byte) (n int, err error)  { return m.ServerReader.Read(data) }
 func (m stubConn) Write(data []byte) (n int, err error) { return m.ServerWriter.Write(data) }
 func (m stubConn) RemoteAddr() net.Addr                 { return stubAddr{} }
-
-func (m stubConn) SetDeadline(t time.Time) error      { return nil }
-func (m stubConn) SetReadDeadline(t time.Time) error  { return nil }
-func (m stubConn) SetWriteDeadline(t time.Time) error { return nil }
-func (m stubConn) LocalAddr() net.Addr                { return nil }
 
 type stubAddr struct {
 }
