@@ -17,7 +17,7 @@ func TestAccept(t *testing.T) {
 		conn = <-connections
 		done <- true
 	}()
-	go accept(&stubListener{}, connections)
+	go accept(&accepterPass{}, connections)
 
 	<-done
 	if conn.RemoteAddr().String() != "1.2.3.4:5" {
@@ -30,7 +30,7 @@ func TestDontAccept(t *testing.T) {
 	connections := make(chan net.Conn)
 
 	go func() {
-		go accept(&stubListener{fail: true}, connections)
+		go accept(&accepterFail{}, connections)
 		done <- true
 	}()
 
@@ -76,16 +76,20 @@ func TestReadMessageFromClient(t *testing.T) {
 	}
 }
 
-type stubListener struct {
-	net.Listener
-	fail bool
+type accepterPass struct {
+	Accepter
 }
 
-func (m stubListener) Accept() (net.Conn, error) {
-	if m.fail {
-		return nil, errors.New("fail")
-	}
+func (m accepterPass) Accept() (net.Conn, error) {
 	return stubConn{}, nil
+}
+
+type accepterFail struct {
+	Accepter
+}
+
+func (m accepterFail) Accept() (net.Conn, error) {
+	return nil, errors.New("fail")
 }
 
 type stubConn struct {
@@ -107,15 +111,6 @@ func newStubConn() stubConn {
 	}
 }
 
-func (m stubConn) Close() error {
-	if err := m.ServerWriter.Close(); err != nil {
-		return err
-	}
-	if err := m.ServerReader.Close(); err != nil {
-		return err
-	}
-	return nil
-}
 func (m stubConn) Read(data []byte) (n int, err error)  { return m.ServerReader.Read(data) }
 func (m stubConn) Write(data []byte) (n int, err error) { return m.ServerWriter.Write(data) }
 func (m stubConn) RemoteAddr() net.Addr                 { return stubAddr{} }

@@ -54,7 +54,11 @@ func launchServer(port string) net.Listener {
 	return server
 }
 
-func accept(server net.Listener, newConnections chan net.Conn) {
+type Accepter interface {
+	Accept() (net.Conn, error)
+}
+
+func accept(server Accepter, newConnections chan net.Conn) {
 	for {
 		conn, err := server.Accept()
 		if err != nil {
