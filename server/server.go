@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
+
+	"github.com/nu7hatch/gouuid"
 )
 
 // Message from Client
@@ -21,8 +23,8 @@ type Client struct {
 	ID   string
 }
 
-// ToString : format client information
-func (c *Client) ToString() string {
+// String : format client information
+func (c *Client) String() string {
 	return fmt.Sprintf("Client[Id: %s, Name: %s, Address: %s]", c.ID, c.Name, c.Conn.RemoteAddr())
 }
 
@@ -38,10 +40,14 @@ func main() {
 	for {
 		select {
 		case conn := <-newConnections:
-			log.Printf("Accepted new client, %v", conn.RemoteAddr().String())
-			go read(Client{Conn: conn}, messages, deadClients)
+			if uuid, err := uuid.NewV4(); err == nil {
+				c := Client{ID: uuid.String(), Conn: conn}
+				log.Printf("Accepted new client: %v", c.String())
+				go read(c, messages, deadClients)
+			}
+			log.Printf("Can't create uuid for Client from : %v", conn.RemoteAddr().String())
 		case client := <-deadClients:
-			log.Printf("%v disconnected", client.ToString())
+			log.Printf("%v disconnected", client.String())
 		case message := <-messages:
 			go handleMessage(message)
 		}
