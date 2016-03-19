@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -12,8 +13,8 @@ import (
 
 // Message from Client
 type Message struct {
-	Client Client
-	Data   []byte
+	Client  Client
+	Request Request
 }
 
 // Client connected
@@ -81,17 +82,22 @@ func accept(server Accepter, newConnections chan net.Conn) {
 func read(client Client, messages chan Message, deadClients chan Client) {
 	reader := bufio.NewReader(client.Conn)
 	for {
-		incoming, err := reader.ReadString('\n')
+		incoming, err := reader.ReadBytes('\n')
 		if err != nil {
 			break
 		}
-		messages <- Message{client, []byte(incoming)[0 : len(incoming)-1]}
+		var req Request
+		err = json.Unmarshal(incoming, &req)
+		if err != nil {
+			log.Printf("For client %s, can't parse request: %s", client.String(), string(incoming))
+		}
+		messages <- Message{client, req}
 	}
 	deadClients <- client
 }
 
 func handleMessage(mess Message) {
-	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), string(mess.Data))
+	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), mess.Request.Action)
 }
 
 func loadArg(command, defaultValue string) (port string) {

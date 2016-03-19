@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -68,10 +68,12 @@ func TestReadMessageFromClient(t *testing.T) {
 		done <- true
 	}()
 	go read(Client{Conn: mockConn}, messages, deadClients)
-	fmt.Fprintf(mockConn.ClientWriter, "hello\n")
+	req := Request{Action: "authenticate"}
+	encoder := json.NewEncoder(mockConn.ClientWriter)
+	encoder.Encode(&req)
 
 	<-done
-	if string(msg.Data) != "hello" {
+	if string(msg.Request.Action) != "authenticate" {
 		t.Fail()
 	}
 }
