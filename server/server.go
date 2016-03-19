@@ -8,19 +8,22 @@ import (
 	"os"
 )
 
+// Message from Client
 type Message struct {
 	Client Client
 	Data   []byte
 }
 
+// Client connected
 type Client struct {
 	Conn net.Conn
 	Name string
-	Id   string
+	ID   string
 }
 
+// ToString : format client information
 func (c *Client) ToString() string {
-	return fmt.Sprintf("Client[Id: %s, Name: %s, Address: %s]", c.Id, c.Name, c.Conn.RemoteAddr())
+	return fmt.Sprintf("Client[Id: %s, Name: %s, Address: %s]", c.ID, c.Name, c.Conn.RemoteAddr())
 }
 
 func main() {
@@ -54,6 +57,7 @@ func launchServer(port string) net.Listener {
 	return server
 }
 
+// Accepter : Accept connection
 type Accepter interface {
 	Accept() (net.Conn, error)
 }
