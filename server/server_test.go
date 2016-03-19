@@ -10,32 +10,32 @@ import (
 
 func TestAccept(t *testing.T) {
 	done := make(chan bool)
-	connections := make(chan net.Conn)
+	clients := make(chan Client)
 
-	var conn net.Conn
+	var client Client
 	go func() {
-		conn = <-connections
+		client = <-clients
 		done <- true
 	}()
-	go accept(&accepterPass{}, connections)
+	go accept(&accepterPass{}, clients)
 
 	<-done
-	if conn.RemoteAddr().String() != "1.2.3.4:5" {
+	if client.Conn.RemoteAddr().String() != "1.2.3.4:5" {
 		t.Fail()
 	}
 }
 
 func TestDontAccept(t *testing.T) {
 	done := make(chan bool)
-	connections := make(chan net.Conn)
+	clients := make(chan Client)
 
 	go func() {
-		go accept(&accepterFail{}, connections)
+		go accept(&accepterFail{}, clients)
 		done <- true
 	}()
 
 	<-done
-	if len(connections) > 0 {
+	if len(clients) > 0 {
 		t.Fail()
 	}
 }

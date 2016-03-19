@@ -7,8 +7,6 @@ import (
 	"log"
 	"net"
 	"os"
-
-	"github.com/nu7hatch/gouuid"
 )
 
 // Message from Client
@@ -30,23 +28,21 @@ func (c *Client) String() string {
 }
 
 func main() {
-	newConnections := make(chan net.Conn)
+	connectedClients := []Client{}
+	newClients := make(chan Client)
 	deadClients := make(chan Client)
 	messages := make(chan Message)
 
 	port := loadArg("-p", "3000")
 	server := launchServer(port)
-	go accept(server, newConnections)
+	go accept(server, newClients)
 
 	for {
 		select {
-		case conn := <-newConnections:
-			if uuid, err := uuid.NewV4(); err == nil {
-				c := Client{ID: uuid.String(), Conn: conn}
-				log.Printf("Accepted new client: %v", c.String())
-				go read(c, messages, deadClients)
-			}
-			log.Printf("Can't create uuid for Client from : %v", conn.RemoteAddr().String())
+		case client := <-newClients:
+			log.Printf("Accepted new client: %v", client.String())
+			connectedClients = append(connectedClients, client)
+			go read(client, messages, deadClients)
 		case client := <-deadClients:
 			log.Printf("%v disconnected", client.String())
 		case message := <-messages:
@@ -69,13 +65,13 @@ type Accepter interface {
 	Accept() (net.Conn, error)
 }
 
-func accept(server Accepter, newConnections chan net.Conn) {
+func accept(server Accepter, clients chan Client) {
 	for {
 		conn, err := server.Accept()
 		if err != nil {
 			continue
 		}
-		newConnections <- conn
+		clients <- Client{Conn: conn}
 	}
 }
 
@@ -97,7 +93,7 @@ func read(client Client, messages chan Message, deadClients chan Client) {
 }
 
 func handleMessage(mess Message) {
-	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), mess.Request.Action)
+	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), mess.Request)
 }
 
 func loadArg(command, defaultValue string) (port string) {
