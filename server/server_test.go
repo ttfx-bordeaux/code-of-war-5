@@ -68,7 +68,9 @@ func TestReadMessageFromClient(t *testing.T) {
 		done <- true
 	}()
 	go read(Client{Conn: mockConn}, messages, deadClients)
-	req := Request{Action: "authenticate"}
+	auth := &AuthRequest{ID: "12345", Name: "kriyss"}
+	b, _ := json.Marshal(auth)
+	req := Request{Action: "authenticate", Data: b}
 	encoder := json.NewEncoder(mockConn.ClientWriter)
 	encoder.Encode(&req)
 
