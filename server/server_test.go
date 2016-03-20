@@ -4,11 +4,13 @@ import (
 	"errors"
 	"net"
 	"testing"
+
+	"github.com/ttfx-bordeaux/code-of-war-5/server/core"
 )
 
 func TestDontAccept(t *testing.T) {
 	done := make(chan bool)
-	clients := make(chan Client)
+	clients := make(chan core.Client)
 
 	go func() {
 		go accept(&accepterFail{}, clients)

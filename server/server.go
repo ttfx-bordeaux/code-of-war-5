@@ -6,42 +6,37 @@ import (
 	"log"
 	"net"
 
+	"github.com/ttfx-bordeaux/code-of-war-5/server/core"
+	"github.com/ttfx-bordeaux/code-of-war-5/server/game"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/io"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/util"
 )
 
 // Message from Client
 type Message struct {
-	Client  Client
+	Client  core.Client
 	Request io.Request
-}
-
-// Client connected
-type Client struct {
-	Conn net.Conn
-	Name string
-	ID   string
-}
-
-// String : format client information
-func (c *Client) String() string {
-	return fmt.Sprintf("Client[Id: %s, Name: %s, Address: %s]", c.ID, c.Name, c.Conn.RemoteAddr())
 }
 
 var (
 	// ConnectedClients : all authentified clients
-	ConnectedClients map[string]Client
+	ConnectedClients map[string]core.Client
 )
 
 func main() {
-	ConnectedClients = make(map[string]Client)
-	newClients := make(chan Client)
-	deadClients := make(chan Client)
+	ConnectedClients = make(map[string]core.Client)
+	newClients := make(chan core.Client)
+	deadClients := make(chan core.Client)
 	messages := make(chan Message)
+	commands := make(chan io.Command)
 
-	port := util.LoadArg("-p", "3000")
-	server := launchServer(port)
-	go accept(server, newClients)
+	gamePort := util.LoadArg("-p", "3000")
+	gameServer := launchServer(gamePort)
+	go accept(gameServer, newClients)
+
+	commandPort := util.LoadArg("-p", "4000")
+	commandServer := launchServer(commandPort)
+	go acceptCommand(commandServer, commands)
 
 	for {
 		select {
@@ -55,6 +50,12 @@ func main() {
 		case m := <-messages:
 			log.Printf("%+v", ConnectedClients)
 			go handleMessage(m)
+		case c := <-commands:
+			log.Printf("Command received %+v", c)
+			if c.Value == "start" {
+				game := game.NewGame(ConnectedClients)
+				game.Launch()
+			}
 		}
 	}
 }
@@ -73,7 +74,7 @@ type Accepter interface {
 	Accept() (net.Conn, error)
 }
 
-func accept(server Accepter, clients chan Client) {
+func accept(server Accepter, clients chan core.Client) {
 	for {
 		conn, err := server.Accept()
 		if err != nil {
@@ -91,6 +92,22 @@ func accept(server Accepter, clients chan Client) {
 	}
 }
 
+func acceptCommand(server Accepter, commands chan io.Command) {
+	for {
+		conn, err := server.Accept()
+		if err != nil {
+			continue
+		}
+		defer conn.Close()
+		r := bufio.NewReader(conn)
+		req := io.Request{}
+		req.Decode(r)
+		cmd := io.Command{}
+		cmd.Decode(&req)
+		commands <- cmd
+	}
+}
+
 // DuplicateClientIDErr : error when multiple client use same ID
 type DuplicateClientIDErr struct {
 	error
@@ -100,23 +117,23 @@ func (err DuplicateClientIDErr) Error() string {
 	return "ID already in use"
 }
 
-func authenticate(conn net.Conn, connected map[string]Client) (Client, error) {
+func authenticate(conn net.Conn, connected map[string]core.Client) (core.Client, error) {
 	r := bufio.NewReader(conn)
 	req := io.Request{}
 	if err := req.Decode(r); err != nil {
-		return Client{}, err
+		return core.Client{}, err
 	}
 	auth := io.AuthRequest{}
 	if err := auth.Decode(&req); err != nil {
-		return Client{}, err
+		return core.Client{}, err
 	}
 	if _, exist := connected[auth.ID]; exist {
-		return Client{}, DuplicateClientIDErr{}
+		return core.Client{}, DuplicateClientIDErr{}
 	}
-	return Client{Conn: conn, ID: auth.ID, Name: auth.Name}, nil
+	return core.Client{Conn: conn, ID: auth.ID, Name: auth.Name}, nil
 }
 
-func handleClient(client Client, messages chan Message, deadClients chan Client) {
+func handleClient(client core.Client, messages chan Message, deadClients chan core.Client) {
 	r := bufio.NewReader(client.Conn)
 	for {
 		req := io.Request{}

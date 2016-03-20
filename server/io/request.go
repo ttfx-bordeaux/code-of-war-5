@@ -18,6 +18,11 @@ type AuthRequest struct {
 	ID   string `json:"id"`
 }
 
+// Message from Client
+type Command struct {
+	Value string `json:"value"`
+}
+
 // Decode Request from bufio.Reader
 func (r *Request) Decode(reader *bufio.Reader) error {
 	incoming, err := reader.ReadBytes('\n')
@@ -36,6 +41,12 @@ func (a *AuthRequest) Decode(req *Request) (err error) {
 	return
 }
 
+// Decode AuthRequest from Request
+func (c *Command) Decode(req *Request) (err error) {
+	err = json.Unmarshal(req.Data, &c)
+	return
+}
+
 // DecodeErr : can't parse structure
 type DecodeErr interface {
 	error
@@ -51,7 +62,7 @@ type AuthRequestDecodeErr struct {
 	DecodeErr
 }
 
-func (e AuthRequest) Error() string {
+func (e AuthRequestDecodeErr) Error() string {
 	return fmt.Sprintf("Can't parse AuthRequest : %v", e.Error())
 }
 

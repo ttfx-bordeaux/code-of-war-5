@@ -42,3 +42,15 @@ func TestDecodeAuthRequest(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestFailDecodeAuthRequest(t *testing.T) {
+	s := "{bad parsing}"
+	req := Request{Action: "authenticate", Data: []byte(s)}
+	auth := AuthRequest{}
+
+	err := auth.Decode(&req)
+
+	if err == nil {
+		t.Fail()
+	}
+}
