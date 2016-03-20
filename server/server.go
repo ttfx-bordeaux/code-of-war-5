@@ -45,16 +45,16 @@ func main() {
 
 	for {
 		select {
-		case client := <-newClients:
-			log.Printf("Accepted new client: %v", client.String())
-			ConnectedClients[client.ID] = client
-			go handleClient(client, messages, deadClients)
-		case client := <-deadClients:
-			delete(ConnectedClients, client.ID)
-			log.Printf("%v disconnected", client.String())
-		case message := <-messages:
+		case c := <-newClients:
+			log.Printf("Accepted new client: %v", c.String())
+			ConnectedClients[c.ID] = c
+			go handleClient(c, messages, deadClients)
+		case c := <-deadClients:
+			delete(ConnectedClients, c.ID)
+			log.Printf("%v disconnected", c.String())
+		case m := <-messages:
 			log.Printf("%+v", ConnectedClients)
-			go handleMessage(message)
+			go handleMessage(m)
 		}
 	}
 }
@@ -80,13 +80,13 @@ func accept(server Accepter, clients chan Client) {
 			continue
 		}
 		defer conn.Close()
-		client, err := authenticate(conn, ConnectedClients)
-		if err != nil {
+		c, err := authenticate(conn, ConnectedClients)
+		if err == nil {
+			clients <- c
+		} else {
 			s := fmt.Sprintf("Can't authenticate %v, reason : %v", conn.RemoteAddr().String(), err.Error())
 			log.Println(s)
 			fmt.Fprintf(conn, s)
-		} else {
-			clients <- client
 		}
 	}
 }
@@ -101,9 +101,9 @@ func (err DuplicateClientIDErr) Error() string {
 }
 
 func authenticate(conn net.Conn, connected map[string]Client) (Client, error) {
-	reader := bufio.NewReader(conn)
+	r := bufio.NewReader(conn)
 	req := io.Request{}
-	if err := req.Decode(reader); err != nil {
+	if err := req.Decode(r); err != nil {
 		return Client{}, err
 	}
 	auth := io.AuthRequest{}
@@ -117,11 +117,10 @@ func authenticate(conn net.Conn, connected map[string]Client) (Client, error) {
 }
 
 func handleClient(client Client, messages chan Message, deadClients chan Client) {
-	reader := bufio.NewReader(client.Conn)
+	r := bufio.NewReader(client.Conn)
 	for {
 		req := io.Request{}
-		err := req.Decode(reader)
-		if err != nil {
+		if err := req.Decode(r); err != nil {
 			break
 		}
 		messages <- Message{Client: client, Request: req}

@@ -24,8 +24,7 @@ func (r *Request) Decode(reader *bufio.Reader) error {
 	if err != nil {
 		return RequestDecodeErr{err}
 	}
-	err = json.Unmarshal(incoming, &r)
-	if err != nil {
+	if err := json.Unmarshal(incoming, &r); err != nil {
 		return AuthRequestDecodeErr{err}
 	}
 	return nil
