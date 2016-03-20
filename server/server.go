@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/code-of-war-5/server/io"
-	"github.com/code-of-war-5/server/util"
+	"github.com/ttfx-bordeaux/code-of-war-5/server/io"
+	"github.com/ttfx-bordeaux/code-of-war-5/server/util"
 )
 
 // Message from Client
