@@ -11,4 +11,14 @@
 ### How to launch ?
 
 Default port value is `3000`
-> go run server/server.go [-p <port>]
+> go build && ./server [-p <port>]
+
+### Authentication
+
+> {
+>    "action" : "authenticate",
+>    "data": {
+>        "id":"token",
+>        "name":"username"
+>    }
+> }
