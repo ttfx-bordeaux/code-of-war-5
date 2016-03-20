@@ -19,9 +19,8 @@ func TestDecodeRequest(t *testing.T) {
 }
 
 func TestFailDecodeRequest(t *testing.T) {
-	s := "bad parsing"
 	req := Request{}
-	r := bufio.NewReader(strings.NewReader(s))
+	r := bufio.NewReader(strings.NewReader("bad parsing"))
 	if err := req.Decode(r); err == nil {
 		t.Fail()
 	}
