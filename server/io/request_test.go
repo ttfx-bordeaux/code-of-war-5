@@ -18,6 +18,15 @@ func TestDecodeRequest(t *testing.T) {
 	}
 }
 
+func TestFailDecodeRequest(t *testing.T) {
+	s := "bad parsing"
+	req := Request{}
+	r := bufio.NewReader(strings.NewReader(s))
+	if err := req.Decode(r); err == nil {
+		t.Fail()
+	}
+}
+
 func TestDecodeAuthRequest(t *testing.T) {
 	s := "{\"name\":\"kriyss\",\"id\":\"12345\"}"
 	req := Request{Action: "authenticate", Data: []byte(s)}
