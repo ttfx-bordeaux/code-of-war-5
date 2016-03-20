@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"ttfx.fr/code-of-war-5/server/io"
+	"ttfx.fr/code-of-war-5/server/util"
 )
 
 // Message from Client
 type Message struct {
 	Client  Client
-	Request Request
+	Request io.Request
 }
 
 // Client connected
@@ -30,7 +33,7 @@ func main() {
 	deadClients := make(chan Client)
 	messages := make(chan Message)
 
-	port := LoadArg("-p", "3000")
+	port := util.LoadArg("-p", "3000")
 	server := launchServer(port)
 	go accept(server, newClients)
 
@@ -81,11 +84,11 @@ func accept(server Accepter, clients chan Client) {
 
 func authenticate(conn net.Conn) (Client, error) {
 	reader := bufio.NewReader(conn)
-	req := Request{}
+	req := io.Request{}
 	if err := req.Decode(reader); err != nil {
 		return Client{}, fmt.Errorf("Fail decode Request from %s", conn.RemoteAddr().String())
 	}
-	auth := AuthRequest{}
+	auth := io.AuthRequest{}
 	if err := auth.Decode(&req); err != nil {
 		return Client{}, fmt.Errorf("Fail decode AuthRequest from %s", conn.RemoteAddr().String())
 	}
@@ -95,7 +98,7 @@ func authenticate(conn net.Conn) (Client, error) {
 func handleClient(client Client, messages chan Message, deadClients chan Client) {
 	reader := bufio.NewReader(client.Conn)
 	for {
-		req := Request{}
+		req := io.Request{}
 		err := req.Decode(reader)
 		if err != nil {
 			break
