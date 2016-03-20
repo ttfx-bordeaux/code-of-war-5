@@ -2,11 +2,9 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
-	"os"
 )
 
 // Message from Client
@@ -28,12 +26,11 @@ func (c *Client) String() string {
 }
 
 func main() {
-	connectedClients := []Client{}
 	newClients := make(chan Client)
 	deadClients := make(chan Client)
 	messages := make(chan Message)
 
-	port := loadArg("-p", "3000")
+	port := LoadArg("-p", "3000")
 	server := launchServer(port)
 	go accept(server, newClients)
 
@@ -41,8 +38,7 @@ func main() {
 		select {
 		case client := <-newClients:
 			log.Printf("Accepted new client: %v", client.String())
-			connectedClients = append(connectedClients, client)
-			go read(client, messages, deadClients)
+			go handleClient(client, messages, deadClients)
 		case client := <-deadClients:
 			log.Printf("%v disconnected", client.String())
 		case message := <-messages:
@@ -71,39 +67,44 @@ func accept(server Accepter, clients chan Client) {
 		if err != nil {
 			continue
 		}
-		clients <- Client{Conn: conn}
+		defer conn.Close()
+		client, err := authenticate(conn)
+		if err == nil {
+			clients <- client
+		} else {
+			s := fmt.Sprintf("Can't authenticate %v, reason : %v", conn.RemoteAddr().String(), err.Error())
+			log.Println(s)
+			fmt.Fprintf(conn, s)
+		}
 	}
 }
 
-func read(client Client, messages chan Message, deadClients chan Client) {
+func authenticate(conn net.Conn) (Client, error) {
+	reader := bufio.NewReader(conn)
+	req := Request{}
+	if err := req.Decode(reader); err != nil {
+		return Client{}, fmt.Errorf("Fail decode Request from %s", conn.RemoteAddr().String())
+	}
+	auth := AuthRequest{}
+	if err := auth.Decode(&req); err != nil {
+		return Client{}, fmt.Errorf("Fail decode AuthRequest from %s", conn.RemoteAddr().String())
+	}
+	return Client{Conn: conn, ID: auth.ID, Name: auth.Name}, nil
+}
+
+func handleClient(client Client, messages chan Message, deadClients chan Client) {
 	reader := bufio.NewReader(client.Conn)
 	for {
-		incoming, err := reader.ReadBytes('\n')
+		req := Request{}
+		err := req.Decode(reader)
 		if err != nil {
 			break
 		}
-		var req Request
-		err = json.Unmarshal(incoming, &req)
-		if err != nil {
-			log.Printf("For client %s, can't parse request: %s", client.String(), string(incoming))
-		}
-		messages <- Message{client, req}
+		messages <- Message{Client: client, Request: req}
 	}
 	deadClients <- client
 }
 
 func handleMessage(mess Message) {
 	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), mess.Request)
-}
-
-func loadArg(command, defaultValue string) (port string) {
-	port = defaultValue
-	args := os.Args
-	for i, arg := range args {
-		switch {
-		case arg == command:
-			port = args[i+1]
-		}
-	}
-	return
 }
