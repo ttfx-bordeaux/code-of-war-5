@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net"
+    
+    "io"
+    "net/http"
+    "golang.org/x/net/websocket"
 )
 
 // Message from Client
@@ -32,6 +36,7 @@ func main() {
 
 	port := LoadArg("-p", "3000")
 	server := launchServer(port)
+    launchServerHero("3001")
 	go accept(server, newClients)
 
 	for {
@@ -54,6 +59,20 @@ func launchServer(port string) net.Listener {
 	}
 	log.Printf("Launching server on %s", server.Addr())
 	return server
+}
+
+func launchServerHero(port string) {
+    http.Handle("/echo", websocket.Handler(heroHandler))
+    http.Handle("/", http.FileServer(http.Dir(".")))
+    err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		panic("ListenAndServe hero: " + err.Error())
+	}
+    log.Printf("Launching server Hero on %s", port)
+}
+
+func heroHandler(ws *websocket.Conn) {
+	io.Copy(ws, ws)
 }
 
 // Accepter : Accept connection
