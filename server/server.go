@@ -7,7 +7,6 @@ import (
 	"net"
 
 	"github.com/ttfx-bordeaux/code-of-war-5/server/core"
-	"github.com/ttfx-bordeaux/code-of-war-5/server/game"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/io"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/util"
 )
@@ -53,7 +52,7 @@ func main() {
 		case c := <-commands:
 			log.Printf("Command received %+v", c)
 			if c.Value == "start" {
-				game, err := game.NewGame(ConnectedClients)
+				game, err := core.NewGame(ConnectedClients)
 				if err != nil {
 					log.Println(err)
 					continue
