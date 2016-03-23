@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/core"
 )
 
@@ -14,11 +15,15 @@ type Game struct {
 }
 
 // NewGame ceate new game with clients
-func NewGame(clients map[string]core.Client) Game {
-	return Game{
-		ID:      "id",
-		Players: clients,
+func NewGame(clients map[string]core.Client) (Game, error) {
+	u4, err := uuid.NewV4()
+	if err != nil {
+		return Game{}, err
 	}
+	return Game{
+		ID:      u4.String(),
+		Players: clients,
+	}, nil
 }
 
 func (g *Game) Launch() {

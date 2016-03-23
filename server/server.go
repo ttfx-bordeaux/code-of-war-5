@@ -53,8 +53,13 @@ func main() {
 		case c := <-commands:
 			log.Printf("Command received %+v", c)
 			if c.Value == "start" {
-				game := game.NewGame(ConnectedClients)
+				game, err := game.NewGame(ConnectedClients)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
 				game.Launch()
+
 			}
 		}
 	}

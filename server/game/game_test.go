@@ -11,9 +11,9 @@ func TestCreateGame(t *testing.T) {
 	clients["1"] = core.Client{ID: "1", Name: "name1"}
 	clients["2"] = core.Client{ID: "2", Name: "name2"}
 	clients["3"] = core.Client{ID: "3", Name: "name3"}
-	game := NewGame(clients)
+	game, err := NewGame(clients)
 
-	if game.ID == "" || len(game.Players) != 3 || game.Players["1"].Name != "name1" {
+	if err != nil || game.ID == "" || len(game.Players) != 3 || game.Players["1"].Name != "name1" {
 		t.Fail()
 	}
 }
