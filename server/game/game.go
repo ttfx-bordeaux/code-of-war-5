@@ -30,6 +30,6 @@ func (g *Game) Launch() {
 	log.Printf("Launch Game %s with %d players", g.ID, len(g.Players))
 	for _, c := range g.Players {
 		e := json.NewEncoder(c.Conn)
-		e.Encode("start")
+		e.Encode(g)
 	}
 }
