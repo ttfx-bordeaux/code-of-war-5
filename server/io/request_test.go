@@ -1,4 +1,4 @@
-package main
+package io
 
 import (
 	"bufio"
@@ -18,6 +18,14 @@ func TestDecodeRequest(t *testing.T) {
 	}
 }
 
+func TestFailDecodeRequest(t *testing.T) {
+	req := Request{}
+	r := bufio.NewReader(strings.NewReader("bad parsing"))
+	if err := req.Decode(r); err == nil {
+		t.Fail()
+	}
+}
+
 func TestDecodeAuthRequest(t *testing.T) {
 	s := "{\"name\":\"kriyss\",\"id\":\"12345\"}"
 	req := Request{Action: "authenticate", Data: []byte(s)}
@@ -31,6 +39,18 @@ func TestDecodeAuthRequest(t *testing.T) {
 	}
 	if auth.Name != "kriyss" {
 		log.Println("Fail decode AuthRequest.Name")
+		t.Fail()
+	}
+}
+
+func TestFailDecodeAuthRequest(t *testing.T) {
+	s := "{bad parsing}"
+	req := Request{Action: "authenticate", Data: []byte(s)}
+	auth := AuthRequest{}
+
+	err := auth.Decode(&req)
+
+	if err == nil {
 		t.Fail()
 	}
 }
