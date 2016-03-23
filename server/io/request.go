@@ -3,7 +3,6 @@ package io
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 )
 
 // Request : main structure to dialog with server
@@ -25,47 +24,16 @@ type Command struct {
 
 // Decode Request from bufio.Reader
 func (r *Request) Decode(reader *bufio.Reader) error {
-	incoming, err := reader.ReadBytes('\n')
-	if err != nil {
-		return RequestDecodeErr{err}
-	}
-	if err := json.Unmarshal(incoming, &r); err != nil {
-		return AuthRequestDecodeErr{err}
-	}
-	return nil
+	d := json.NewDecoder(reader)
+	return d.Decode(r)
 }
 
 // Decode AuthRequest from Request
-func (a *AuthRequest) Decode(req *Request) (err error) {
-	err = json.Unmarshal(req.Data, &a)
-	return
+func (a *AuthRequest) Decode(req *Request) error {
+	return json.Unmarshal(req.Data, &a)
 }
 
 // Decode AuthRequest from Request
-func (c *Command) Decode(req *Request) (err error) {
-	err = json.Unmarshal(req.Data, &c)
-	return
-}
-
-// DecodeErr : can't parse structure
-type DecodeErr interface {
-	error
-}
-
-// RequestDecodeErr : can't parse Request structure
-type RequestDecodeErr struct {
-	DecodeErr
-}
-
-// AuthRequestDecodeErr : can't parse AuthRequest structure
-type AuthRequestDecodeErr struct {
-	DecodeErr
-}
-
-func (e AuthRequestDecodeErr) Error() string {
-	return fmt.Sprintf("Can't parse AuthRequest : %v", e.Error())
-}
-
-func (e RequestDecodeErr) Error() string {
-	return fmt.Sprintf("Can't parse RequestDecodeErr : %v", e.Error())
+func (c *Command) Decode(req *Request) error {
+	return json.Unmarshal(req.Data, &c)
 }
