@@ -12,6 +12,7 @@ type Game struct {
 	ID        string
 	Players   map[string]Client
 	gameTurns chan (GameTurn)
+	Scenario  Scenario
 }
 
 // GameTurn represent an action perform  by some entity (client, ia, hero)
@@ -29,11 +30,13 @@ func NewGame(clients map[string]Client) (Game, error) {
 		gameTurns: make(chan GameTurn),
 		ID:        u4.String(),
 		Players:   clients,
+		Scenario:  Scenario{},
 	}, nil
 }
 
 func (g *Game) Launch() {
 	log.Printf("Launch Game %s with %d players", g.ID, len(g.Players))
+	go g.Scenario.Process(g.gameTurns)
 	for _, c := range g.Players {
 		log.Printf("Player in da Game %v ", c)
 		if err := sendStartMessage(c); err != nil {

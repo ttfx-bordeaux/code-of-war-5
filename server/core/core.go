@@ -2,13 +2,12 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"time"
 )
 
 type Render interface {
-	Process()
+	Process(gameTurns chan GameTurn)
 }
 
 // Client connected
@@ -18,15 +17,25 @@ type Client struct {
 	ID   string
 }
 
+type Scenario struct {
+	Name string
+}
+
 // String : format client information
 func (c *Client) String() string {
 	return fmt.Sprintf("Client[Id: %s, Name: %s, Address: %s]", c.ID, c.Name, c.Conn.RemoteAddr())
 }
 
 func (c Client) Process(gameTurns chan GameTurn) {
-	log.Println("process_" + c.ID)
 	for {
 		time.Sleep(2 * time.Second)
 		gameTurns <- GameTurn{c.ID + "_ACTION"}
+	}
+}
+
+func (s Scenario) Process(gameTurns chan GameTurn) {
+	for {
+		time.Sleep(2 * time.Second)
+		gameTurns <- GameTurn{s.Name + "_ACTION_SCENARIO"}
 	}
 }
