@@ -17,6 +17,9 @@ Default `admin` server port value is `4000`
 ```
 
 
+
+## Message on Game Server 
+
 ### Authentication
 
 ```json 
@@ -27,4 +30,17 @@ Default `admin` server port value is `4000`
         "name":"username"
     }
  }
+```
+
+## Message on Admin Server
+
+### Start Game
+
+```json 
+{
+    "action" : "command", 
+    "data" : {
+        "value" : "start"
+    }
+}
 ```
