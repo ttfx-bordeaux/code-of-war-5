@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net"
-
-	"golang.org/x/net/websocket"
-	"net/http"
-
+   
+    "github.com/ttfx-bordeaux/code-of-war-5/server/admin"
+    "github.com/ttfx-bordeaux/code-of-war-5/server/hero"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/core"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/io"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/util"
@@ -40,7 +39,8 @@ func main() {
 	commandServer := launchServer(commandPort)
 	go acceptCommand(commandServer, commands)
 
-	launchServerHero("3001")
+    go admin.LaunchServerAdmin("3002")
+	go hero.LaunchServerHero("3001")
 
 	for {
 		select {
@@ -76,21 +76,6 @@ func launchServer(port string) net.Listener {
 	}
 	log.Printf("Launching server on %s", server.Addr())
 	return server
-}
-
-func launchServerHero(port string) {
-	http.Handle("/echo", websocket.Handler(heroHandler))
-	http.Handle("/", http.FileServer(http.Dir(".")))
-	err := http.ListenAndServe(":"+port, nil)
-	if err != nil {
-		panic("ListenAndServe hero: " + err.Error())
-	}
-	log.Printf("Launching server Hero on %s", port)
-}
-
-func heroHandler(ws *websocket.Conn) {
-	// package io already used
-	//io.Copy(ws, ws)
 }
 
 // Accepter : Accept connection
