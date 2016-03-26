@@ -1,31 +1,10 @@
 package main
 
-import (
-	"errors"
-	"net"
-	"testing"
-
-	"github.com/ttfx-bordeaux/code-of-war-5/server/core"
-)
-
-func TestDontAccept(t *testing.T) {
-	done := make(chan bool)
-	clients := make(chan core.Client)
-
-	go func() {
-		go accept(&accepterFail{}, clients)
-		done <- true
-	}()
-
-	<-done
-	if len(clients) > 0 {
-		t.Fail()
-	}
-}
+import "testing"
 
 func TestLaunchServer(t *testing.T) {
-	srv := launchServer("2000")
-	if srv.Addr().String() != "[::]:2000" {
+	srv := LaunchServer("2000", func(a Accepter) {})
+	if srv.Addr() != "[::]:2000" {
 		t.Fail()
 	}
 }
@@ -36,13 +15,18 @@ func TestFailLaunchServer(t *testing.T) {
 			t.Fail()
 		}
 	}()
-	launchServer("-1")
+	LaunchServer("-1", func(new Accepter) { panic("error") })
 }
 
-type accepterFail struct {
-	Accepter
+func TestCloseServer(t *testing.T) {
+	srv := LaunchServer("2001", func(a Accepter) {})
+	srv.Close()
 }
 
-func (m accepterFail) Accept() (net.Conn, error) {
-	return nil, errors.New("fail")
+func TestHandler(t *testing.T) {
+	quit := make(chan bool)
+	LaunchServer("2001", func(a Accepter) { quit <- true })
+	if b := <-quit; !b {
+		t.Fail()
+	}
 }

@@ -1,76 +1,13 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
 	"net"
-
-	"github.com/ttfx-bordeaux/code-of-war-5/server/core"
-	"github.com/ttfx-bordeaux/code-of-war-5/server/io"
-	"github.com/ttfx-bordeaux/code-of-war-5/server/util"
 )
 
-// Message from Client
-type Message struct {
-	Client  core.Client
-	Request io.Request
-}
-
-var (
-	// ConnectedClients : all authentified clients
-	ConnectedClients map[string]core.Client
-)
-
-func main() {
-	ConnectedClients = make(map[string]core.Client)
-	newClients := make(chan core.Client)
-	deadClients := make(chan core.Client)
-	messages := make(chan Message)
-	commands := make(chan io.Command)
-
-	gamePort := util.LoadArg("-p", "3000")
-	gameServer := launchServer(gamePort)
-	go accept(gameServer, newClients)
-
-	commandPort := util.LoadArg("-p", "4000")
-	commandServer := launchServer(commandPort)
-	go acceptCommand(commandServer, commands)
-
-	for {
-		select {
-		case c := <-newClients:
-			log.Printf("Accepted new client: %v", c.String())
-			ConnectedClients[c.ID] = c
-			go handleClient(c, messages, deadClients)
-		case c := <-deadClients:
-			delete(ConnectedClients, c.ID)
-			log.Printf("%v disconnected", c.String())
-		case m := <-messages:
-			log.Printf("%+v", ConnectedClients)
-			go handleMessage(m)
-		case c := <-commands:
-			log.Printf("Command received %+v", c)
-			if c.Value == "start" {
-				game, err := core.NewGame(ConnectedClients)
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-				game.Launch()
-
-			}
-		}
-	}
-}
-
-func launchServer(port string) net.Listener {
-	server, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("Launching server on %s", server.Addr())
-	return server
+// Server handle net.Listener and encapsulate handler
+type Server struct {
+	listener net.Listener
 }
 
 // Accepter : Accept connection
@@ -78,78 +15,21 @@ type Accepter interface {
 	Accept() (net.Conn, error)
 }
 
-func accept(server Accepter, clients chan core.Client) {
-	for {
-		conn, err := server.Accept()
-		if err != nil {
-			continue
-		}
-		defer conn.Close()
-		err = authenticate(conn, ConnectedClients, func(c core.Client) { clients <- c })
-		if err != nil {
-			s := fmt.Sprintf("Can't authenticate %v, reason : %v", conn.RemoteAddr().String(), err.Error())
-			log.Println(s)
-			fmt.Fprintf(conn, s)
-		}
+func LaunchServer(port string, handler func(Accepter)) *Server {
+	lst, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		panic(err)
 	}
+	log.Printf("Launching server on %s", lst.Addr())
+	go handler(lst)
+	return &Server{listener: lst}
 }
 
-func acceptCommand(server Accepter, commands chan io.Command) {
-	for {
-		conn, err := server.Accept()
-		if err != nil {
-			continue
-		}
-		defer conn.Close()
-		r := bufio.NewReader(conn)
-		req := io.Request{}
-		req.Decode(r)
-		cmd := io.Command{}
-		cmd.Decode(&req)
-		commands <- cmd
-	}
+func (s *Server) Close() error {
+	log.Printf("closing server on %s", s.Addr())
+	return s.listener.Close()
 }
 
-// DuplicateClientIDErr : error when multiple client use same ID
-type DuplicateClientIDErr struct {
-	error
-}
-
-func (err DuplicateClientIDErr) Error() string {
-	return "ID already in use"
-}
-
-type authenticateHandler func(client core.Client)
-
-func authenticate(conn net.Conn, connected map[string]core.Client, fct authenticateHandler) error {
-	r := bufio.NewReader(conn)
-	req := io.Request{}
-	if err := req.Decode(r); err != nil {
-		return err
-	}
-	auth := io.AuthRequest{}
-	if err := auth.Decode(&req); err != nil {
-		return err
-	}
-	if _, exist := connected[auth.ID]; exist {
-		return DuplicateClientIDErr{}
-	}
-	fct(core.Client{Conn: conn, ID: auth.ID, Name: auth.Name})
-	return nil
-}
-
-func handleClient(client core.Client, messages chan Message, deadClients chan core.Client) {
-	r := bufio.NewReader(client.Conn)
-	for {
-		req := io.Request{}
-		if err := req.Decode(r); err != nil {
-			break
-		}
-		messages <- Message{Client: client, Request: req}
-	}
-	deadClients <- client
-}
-
-func handleMessage(mess Message) {
-	log.Printf("From %v : [%v] ", mess.Client.Conn.RemoteAddr(), mess.Request)
+func (s *Server) Addr() string {
+	return s.listener.Addr().String()
 }
