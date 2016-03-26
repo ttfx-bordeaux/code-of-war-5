@@ -85,10 +85,8 @@ func accept(server Accepter, clients chan core.Client) {
 			continue
 		}
 		defer conn.Close()
-		c, err := authenticate(conn, ConnectedClients)
-		if err == nil {
-			clients <- c
-		} else {
+		err = authenticate(conn, ConnectedClients, func(c core.Client) { clients <- c })
+		if err != nil {
 			s := fmt.Sprintf("Can't authenticate %v, reason : %v", conn.RemoteAddr().String(), err.Error())
 			log.Println(s)
 			fmt.Fprintf(conn, s)
@@ -121,20 +119,23 @@ func (err DuplicateClientIDErr) Error() string {
 	return "ID already in use"
 }
 
-func authenticate(conn net.Conn, connected map[string]core.Client) (core.Client, error) {
+type authenticateHandler func(client core.Client)
+
+func authenticate(conn net.Conn, connected map[string]core.Client, fct authenticateHandler) error {
 	r := bufio.NewReader(conn)
 	req := io.Request{}
 	if err := req.Decode(r); err != nil {
-		return core.Client{}, err
+		return err
 	}
 	auth := io.AuthRequest{}
 	if err := auth.Decode(&req); err != nil {
-		return core.Client{}, err
+		return err
 	}
 	if _, exist := connected[auth.ID]; exist {
-		return core.Client{}, DuplicateClientIDErr{}
+		return DuplicateClientIDErr{}
 	}
-	return core.Client{Conn: conn, ID: auth.ID, Name: auth.Name}, nil
+	fct(core.Client{Conn: conn, ID: auth.ID, Name: auth.Name})
+	return nil
 }
 
 func handleClient(client core.Client, messages chan Message, deadClients chan core.Client) {

@@ -38,7 +38,7 @@ func (g *Game) Launch() {
 	log.Printf("Launch Game %s with %d players", g.ID, len(g.Players))
 	go g.Scenario.Process(g.gameTurns)
 	for _, c := range g.Players {
-		log.Printf("Player in da Game %v ", c)
+		log.Printf("Player in da Game %s ", c.String())
 		if err := sendStartMessage(c); err != nil {
 			continue
 		}
@@ -55,6 +55,6 @@ func sendStartMessage(c Client) error {
 func gameTurnsHandler(gts chan GameTurn) {
 	for {
 		gt := <-gts
-		log.Printf("Game turn recived : %s", gt.Type)
+		log.Printf("Game turn received : %s", gt.Type)
 	}
 }
