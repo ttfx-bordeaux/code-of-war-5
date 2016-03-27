@@ -46,7 +46,7 @@ func main() {
 func initAdminActions() {
 	AdminActions = map[string]func(){
 		"create": func() {
-			g, err := game.NewGame(ConnectedClients)
+			g, err := game.NewGame("name")
 			if err != nil {
 				log.Println(err)
 			}

@@ -10,6 +10,7 @@ import (
 // Game struct
 type Game struct {
 	ID        string
+	Name      string
 	Players   map[string]Client
 	gameTurns chan (GameTurn)
 	Scenario  Scenario
@@ -21,16 +22,14 @@ type GameTurn struct {
 }
 
 // NewGame ceate new game with clients
-func NewGame(clients map[string]Client) (Game, error) {
+func NewGame(name string) (Game, error) {
 	u4, err := uuid.NewV4()
 	if err != nil {
 		return Game{}, err
 	}
 	return Game{
-		gameTurns: make(chan GameTurn),
-		ID:        u4.String(),
-		Players:   clients,
-		Scenario:  Scenario{},
+		ID:   u4.String(),
+		Name: name,
 	}, nil
 }
 
