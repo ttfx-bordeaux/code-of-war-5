@@ -17,6 +17,18 @@ type Client struct {
 	ID   string
 }
 
+type Map [][]interface{}
+
+func NewMap(height, width int) Map {
+	cells := make([][]interface{}, height)
+	for i := range cells {
+		cells[i] = make([]interface{}, width)
+	}
+	var m Map
+	m = cells
+	return m
+}
+
 type Scenario struct {
 	Name string
 }
