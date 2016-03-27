@@ -10,11 +10,15 @@
 
 ### How to launch ?
 
-Default port value is `3000`
+Default `game` server port value is `3000`.  
+Default `admin` server port value is `4000`
 ```sh
-  go build && ./server [-p <port>]
+  go build && ./server [--port <port>] [--admin-port <admin-port>]
 ```
 
+
+
+## Message on Game Server 
 
 ### Authentication
 
@@ -26,4 +30,17 @@ Default port value is `3000`
         "name":"username"
     }
  }
+```
+
+## Message on Admin Server
+
+### Start Game
+
+```json 
+{
+    "action" : "command", 
+    "data" : {
+        "value" : "start"
+    }
+}
 ```
