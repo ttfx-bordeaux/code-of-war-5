@@ -27,28 +27,28 @@ var (
 
 	routes = admin.Routes{
 		admin.Route{
-			"Index",
-			"GET",
-			"/",
-			index,
+			Name:        "Index",
+			Method:      "GET",
+			Pattern:     "/",
+			HandlerFunc: index,
 		},
 		admin.Route{
-			"Game",
-			"POST",
-			"/game",
-			createGame,
+			Name:        "Game",
+			Method:      "POST",
+			Pattern:     "/game",
+			HandlerFunc: createGame,
 		},
 		admin.Route{
-			"GameJoin",
-			"POST",
-			"/game/{gameId}/player/{playerId}",
-			joinGame,
+			Name:        "GameJoin",
+			Method:      "POST",
+			Pattern:     "/game/{gameId}/player/{playerId}",
+			HandlerFunc: joinGame,
 		},
 		admin.Route{
-			"GameShow",
-			"POST",
-			"/game/{gameId}/launch",
-			launchGame,
+			Name:        "GameShow",
+			Method:      "POST",
+			Pattern:     "/game/{gameId}/launch",
+			HandlerFunc: launchGame,
 		},
 	}
 )
