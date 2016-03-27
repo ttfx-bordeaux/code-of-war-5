@@ -36,11 +36,9 @@ Default `admin` server port value is `4000`
 
 ### Start Game
 
-```json 
-{
-    "action" : "command", 
-    "data" : {
-        "value" : "start"
-    }
-}
-```
+route                                   |method|   action
+----------------------------------------|------|-----------------------------------
+/game                                   | POST |  create new game, return `game_id`
+/game/`{game_id}`/player/`{player_id}`  | POST |  add player to game
+/game/`{game_id}`/launch                | POST |  launch the game
+
