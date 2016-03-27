@@ -1,20 +1,19 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"html"
 	"log"
+	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/admin"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/game"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/hero"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/io"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/util"
 )
-
-// Message from Client
-type Message struct {
-	Client  game.Client
-	Request io.Request
-}
 
 var (
 	// ConnectedClients : all authentified clients
@@ -25,43 +24,67 @@ var (
 
 	// AllGame that are created
 	AllGame map[string]game.Game
+
+	routes = admin.Routes{
+		admin.Route{
+			"Index",
+			"GET",
+			"/",
+			index,
+		},
+		admin.Route{
+			"Game",
+			"POST",
+			"/game",
+			createGame,
+		},
+		admin.Route{
+			"GameShow",
+			"POST",
+			"/game/{gameId}/launch",
+			launchGame,
+		},
+	}
 )
 
 func main() {
 	ConnectedClients = make(map[string]game.Client)
 	AllGame = make(map[string]game.Game)
-	initAdminActions()
 
 	gamePort := util.LoadArg("--port", "3000")
 	gameSrv := io.LaunchServer(gamePort, game.NewHandler(ConnectedClients))
 	defer gameSrv.Close()
 
-	commandPort := util.LoadArg("--admin-port", "4000")
-	adminSrv := io.LaunchServer(commandPort, admin.NewHandler(AdminActions))
-	defer adminSrv.Close()
+	adminPort := util.LoadArg("--admin-port", "4000")
+	go admin.LaunchServerAdmin(adminPort, routes)
 
-	go admin.LaunchServerAdmin("3002")
-	go hero.LaunchServerHero("3001")
+	heroPort := util.LoadArg("--hero-port", "4001")
+	go hero.LaunchServerHero(heroPort)
 
 	for {
 	}
 }
 
-func initAdminActions() {
-	AdminActions = map[string]func(){
-		"create": func() {
-			g, err := game.NewGame("name")
-			if err != nil {
-				log.Println(err)
-			}
-			// g.Launch()
-			AllGame[g.ID] = g
-		},
-		"all-game": func() {
-			log.Printf("%+v", AllGame)
-		},
-		"all-player": func() {
-			log.Printf("%+v", ConnectedClients)
-		},
+func index(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+}
+
+func createGame(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	g, err := game.NewGame(vars["gameName"])
+	if err != nil {
+		log.Println(err)
 	}
+	AllGame[g.ID] = g
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(g.ID); err != nil {
+		panic(err)
+	}
+}
+
+func launchGame(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	g := AllGame[vars["gameId"]]
+	g.Launch()
 }
