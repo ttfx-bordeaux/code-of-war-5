@@ -43,6 +43,14 @@ func (g *Game) Join(c Client) {
 	}
 }
 
+// Remove client from the Game
+func (g *Game) Remove(c Client) {
+	if _, exist := g.Players[c.ID]; exist {
+		delete(g.Players, c.ID)
+		log.Printf("remove client [%s:%s] to game [%s:%s]", c.Name, c.ID, g.Name, g.ID)
+	}
+}
+
 func (g *Game) Launch() {
 	log.Printf("launch game [%s:%s] with %d players", g.Name, g.ID, len(g.Players))
 	go g.Scenario.Process(g.gameTurns)

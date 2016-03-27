@@ -45,6 +45,12 @@ var (
 			HandlerFunc: joinGame,
 		},
 		admin.Route{
+			Name:        "GameQuit",
+			Method:      "DELETE",
+			Pattern:     "/game/{gameId}/player/{playerId}",
+			HandlerFunc: quitGame,
+		},
+		admin.Route{
 			Name:        "GameLaunch",
 			Method:      "POST",
 			Pattern:     "/game/{gameId}/launch",
@@ -103,5 +109,14 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	p, pexist := ConnectedClients[vars["playerId"]]
 	if gexist && pexist {
 		g.Join(p)
+	}
+}
+
+func quitGame(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	g, gexist := AllGame[vars["gameId"]]
+	p, pexist := ConnectedClients[vars["playerId"]]
+	if gexist && pexist {
+		g.Remove(p)
 	}
 }

@@ -36,9 +36,10 @@ Default `admin` server port value is `4000`
 
 ### Start Game
 
-route                                   |method|   action
-----------------------------------------|------|-----------------------------------
-/game                                   | POST |  create new game, return `game_id`
-/game/`{game_id}`/player/`{player_id}`  | POST |  add player to game
-/game/`{game_id}`/launch                | POST |  launch the game
+route                                   |method  |   action
+----------------------------------------|--------|-----------------------------------
+/game                                   | POST   |  create new game, return `game_id`
+/game/`{game_id}`/player/`{player_id}`  | POST   |  add player to game
+/game/`{game_id}`/player/`{player_id}`  | DELETE |  remove player from game
+/game/`{game_id}`/launch                | POST   |  launch the game
 
