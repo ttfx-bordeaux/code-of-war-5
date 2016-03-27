@@ -28,9 +28,18 @@ func NewGame(name string) (Game, error) {
 		return Game{}, err
 	}
 	return Game{
-		ID:   u4.String(),
-		Name: name,
+		ID:      u4.String(),
+		Players: make(map[string]Client),
+		Name:    name,
 	}, nil
+}
+
+// Join a client to Game
+func (g *Game) Join(client Client) {
+	if _, exist := g.Players[client.ID]; !exist {
+		g.Players[client.ID] = client
+		log.Printf("add client [%s:%s] to game [%s:%s]", client.ID, client.Name, g.ID, g.Name)
+	}
 }
 
 func (g *Game) Launch() {
