@@ -39,6 +39,12 @@ var (
 			createGame,
 		},
 		admin.Route{
+			"GameJoin",
+			"POST",
+			"/game/{gameId}/player/{playerId}",
+			joinGame,
+		},
+		admin.Route{
 			"GameShow",
 			"POST",
 			"/game/{gameId}/launch",
@@ -87,4 +93,12 @@ func launchGame(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	g := AllGame[vars["gameId"]]
 	g.Launch()
+}
+
+func joinGame(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	g := AllGame[vars["gameId"]]
+	p := ConnectedClients[vars["playerId"]]
+	g.Join(p)
+
 }
