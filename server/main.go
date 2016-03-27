@@ -45,7 +45,7 @@ var (
 			HandlerFunc: joinGame,
 		},
 		admin.Route{
-			Name:        "GameShow",
+			Name:        "GameLaunch",
 			Method:      "POST",
 			Pattern:     "/game/{gameId}/launch",
 			HandlerFunc: launchGame,

@@ -27,6 +27,7 @@ func NewGame(name string) (Game, error) {
 	if err != nil {
 		return Game{}, err
 	}
+	log.Printf("create game [%s:%s]", name, u4.String())
 	return Game{
 		ID:      u4.String(),
 		Players: make(map[string]Client),
@@ -38,12 +39,12 @@ func NewGame(name string) (Game, error) {
 func (g *Game) Join(c Client) {
 	if _, exist := g.Players[c.ID]; !exist {
 		g.Players[c.ID] = c
-		log.Printf("add client [%s:%s] to game [%s:%s]", c.ID, c.Name, g.ID, g.Name)
+		log.Printf("add client [%s:%s] to game [%s:%s]", c.Name, c.ID, g.Name, g.ID)
 	}
 }
 
 func (g *Game) Launch() {
-	log.Printf("Launch Game %s with %d players", g.ID, len(g.Players))
+	log.Printf("launch game [%s:%s] with %d players", g.Name, g.ID, len(g.Players))
 	go g.Scenario.Process(g.gameTurns)
 	for _, c := range g.Players {
 		log.Printf("Player in da Game %s ", c.String())
