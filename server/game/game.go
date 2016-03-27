@@ -35,10 +35,10 @@ func NewGame(name string) (Game, error) {
 }
 
 // Join a client to Game
-func (g *Game) Join(client Client) {
-	if _, exist := g.Players[client.ID]; !exist {
-		g.Players[client.ID] = client
-		log.Printf("add client [%s:%s] to game [%s:%s]", client.ID, client.Name, g.ID, g.Name)
+func (g *Game) Join(c Client) {
+	if _, exist := g.Players[c.ID]; !exist {
+		g.Players[c.ID] = c
+		log.Printf("add client [%s:%s] to game [%s:%s]", c.ID, c.Name, g.ID, g.Name)
 	}
 }
 
