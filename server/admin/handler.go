@@ -35,6 +35,8 @@ func execute(actions map[string]func(), cmds chan io.Command) {
 	for {
 		c := <-cmds
 		log.Printf("Command received %v", c)
-		actions[c.Value]()
+		if fc, exist := actions[c.Value]; exist {
+			fc()
+		}
 	}
 }

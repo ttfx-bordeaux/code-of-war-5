@@ -18,11 +18,17 @@ type Message struct {
 var (
 	// ConnectedClients : all authentified clients
 	ConnectedClients map[string]game.Client
-	AdminActions     map[string]func()
+
+	// AdminActions : actions that admin can do
+	AdminActions map[string]func()
+
+	// AllGame that are created
+	AllGame map[string]game.Game
 )
 
 func main() {
 	ConnectedClients = make(map[string]game.Client)
+	AllGame = make(map[string]game.Game)
 	initAdminActions()
 
 	gamePort := util.LoadArg("--port", "3000")
@@ -39,12 +45,19 @@ func main() {
 
 func initAdminActions() {
 	AdminActions = map[string]func(){
-		"start": func() {
-			game, err := game.NewGame(ConnectedClients)
+		"create": func() {
+			g, err := game.NewGame(ConnectedClients)
 			if err != nil {
 				log.Println(err)
 			}
-			game.Launch()
+			// g.Launch()
+			AllGame[g.ID] = g
+		},
+		"all-game": func() {
+			log.Printf("%+v", AllGame)
+		},
+		"all-player": func() {
+			log.Printf("%+v", ConnectedClients)
 		},
 	}
 }
