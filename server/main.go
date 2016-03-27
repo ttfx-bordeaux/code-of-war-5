@@ -97,8 +97,9 @@ func launchGame(w http.ResponseWriter, r *http.Request) {
 
 func joinGame(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	g := AllGame[vars["gameId"]]
-	p := ConnectedClients[vars["playerId"]]
-	g.Join(p)
-
+	g, gexist := AllGame[vars["gameId"]]
+	p, pexist := ConnectedClients[vars["playerId"]]
+	if gexist && pexist {
+		g.Join(p)
+	}
 }
