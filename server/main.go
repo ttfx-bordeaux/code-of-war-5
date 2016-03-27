@@ -91,8 +91,10 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 func launchGame(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	g := AllGame[vars["gameId"]]
-	g.Launch()
+	g, exist := AllGame[vars["gameId"]]
+	if exist {
+		g.Launch()
+	}
 }
 
 func joinGame(w http.ResponseWriter, r *http.Request) {
