@@ -4,7 +4,7 @@ import "testing"
 
 func TestLaunchServer(t *testing.T) {
 	srv := LaunchServer("2000", func(a Accepter) {})
-	if srv.Addr() != "[::]:2000" {
+	if srv.Addr().String() != "[::]:2000" {
 		t.Fail()
 	}
 }
