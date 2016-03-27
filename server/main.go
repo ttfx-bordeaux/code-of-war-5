@@ -5,6 +5,7 @@ import (
 
 	"github.com/ttfx-bordeaux/code-of-war-5/server/admin"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/game"
+	"github.com/ttfx-bordeaux/code-of-war-5/server/hero"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/io"
 	"github.com/ttfx-bordeaux/code-of-war-5/server/util"
 )
@@ -32,6 +33,9 @@ func main() {
 	commandPort := util.LoadArg("--admin-port", "4000")
 	adminSrv := io.LaunchServer(commandPort, admin.NewHandler(AdminActions))
 	defer adminSrv.Close()
+
+	go admin.LaunchServerAdmin("3002")
+	go hero.LaunchServerHero("3001")
 
 	for {
 	}
