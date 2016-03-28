@@ -35,7 +35,7 @@ type Scenario struct {
 
 // String : format client information
 func (c *Client) String() string {
-	return fmt.Sprintf("Client[Id: %s, Name: %s, Address: %s]", c.ID, c.Name, c.Conn.RemoteAddr())
+	return fmt.Sprintf("Client[Id: %s, Name: %s]", c.ID, c.Name)
 }
 
 func (c Client) Process(gameTurns chan GameTurn) {

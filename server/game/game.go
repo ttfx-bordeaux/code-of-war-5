@@ -12,6 +12,8 @@ type Game struct {
 	ID        string
 	Name      string
 	Players   map[string]Client
+	Maps      map[string]Map
+	Base      map[string]Map
 	gameTurns chan (GameTurn)
 	Scenario  Scenario
 }
@@ -31,6 +33,8 @@ func NewGame(name string) (Game, error) {
 	return Game{
 		ID:      u4.String(),
 		Players: make(map[string]Client),
+		Maps:    make(map[string]Map),
+		Base:    make(map[string]Map),
 		Name:    name,
 	}, nil
 }
@@ -51,17 +55,14 @@ func (g *Game) Remove(c Client) {
 	}
 }
 
+// Launch Game
 func (g *Game) Launch() {
 	log.Printf("launch game [%s:%s] with %d players", g.Name, g.ID, len(g.Players))
-	go g.Scenario.Process(g.gameTurns)
 	for _, c := range g.Players {
 		log.Printf("Player in da Game %s ", c.String())
-		if err := sendStartMessage(c); err != nil {
-			continue
-		}
-		go c.Process(g.gameTurns)
+		g.Maps[c.ID] = NewMap(200, 20)
+		g.Base[c.ID] = g.Maps[c.ID][190:][:]
 	}
-	go gameTurnsHandler(g.gameTurns)
 }
 
 func sendStartMessage(c Client) error {

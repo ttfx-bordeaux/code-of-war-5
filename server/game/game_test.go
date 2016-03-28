@@ -1,8 +1,6 @@
 package game
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestCreateGame(t *testing.T) {
 	game, err := NewGame("name")
@@ -37,5 +35,23 @@ func TestQuitGame(t *testing.T) {
 
 	if len(game.Players) != 1 || game.Players["2"].Name != "name2" {
 		t.Fail()
+	}
+}
+
+func TestLaunchGame(t *testing.T) {
+	game, _ := NewGame("my game")
+	game.Join(Client{ID: "1", Name: "name1"})
+	game.Join(Client{ID: "2", Name: "name2"})
+	game.Join(Client{ID: "3", Name: "name3"})
+
+	game.Launch()
+
+	for _, p := range game.Players {
+		if len(game.Maps[p.ID]) != 200 || len(game.Maps[p.ID][0]) != 20 {
+			t.Fatalf("Map dimension aren't correct for player %s", p.String())
+		}
+		if len(game.Base[p.ID]) != 10 || len(game.Base[p.ID][0]) != 20 {
+			t.Fatalf("Base dimension aren't correct for player %s heitgh : %d width : %d", p.String(), len(game.Base[p.ID]), len(game.Base[p.ID][0]))
+		}
 	}
 }
