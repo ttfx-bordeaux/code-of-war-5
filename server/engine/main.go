@@ -8,19 +8,6 @@ import (
 	"github.com/paked/engi/ecs"
 )
 
-/*
-http://www.gamedev.net/page/resources/_/technical/game-programming/understanding-component-entity-systems-r3013
-Entity Component System:
-* Entity: The entity is a general purpose object. Usually, it only consists of a unique id.
-    They "tag every coarse gameobject as a separate item".
-    Implementations typically use a plain integer for this.
-* Component: the raw data for one aspect of the object, and how it interacts with the world.
-    "Labels the Entity as possessing this particular aspect".
-    Implementations typically use Structs, Classes, or Associative Arrays.
-* System: "Each System runs continuously (as though each System had its own private thread)
-    and performs global actions on every Entity that possesses a Component of the same aspect as that System."
-*/
-
 //GameWorld world
 type GameWorld struct{}
 
@@ -38,41 +25,43 @@ func (game *GameWorld) Setup(w *ecs.World) {
 
 	w.AddSystem(&engi.RenderSystem{})
 
-	grass := createEntityTile("grass-600-600.png", engi.Point{0, 0})
-	grassBold := createEntityTile("grass-bold-500-300.png", engi.Point{120, 0})
-	stone := createEntityTile("stone-600-400.png", engi.Point{0, 120})
-	water := createEntityTile("water-600-600.png", engi.Point{120, 120})
+	createGround(w, 3, 5, 0, "grass-600-600.png")
+	createGround(w, 3, 5, 380, "stone-600-400.png")
+	createGround(w, 3, 5, 780, "water-600-600.png")
+}
 
-	err := w.AddEntity(grass)
-	if err != nil {
-		log.Println(err)
+func createGround(w *ecs.World, width, length int, padding float32, imgName string) {
+	for j := 0; j < length; j++ {
+		for i := 0; i < width; i++ {
+			grass := createEntityTile(imgName, engi.Point{X: float32(i)*120 + padding, Y: float32(j) * 120})
+			err := w.AddEntity(grass)
+			if err != nil {
+				log.Println(err)
+			}
+		}
 	}
-	w.AddEntity(stone)
-	w.AddEntity(grassBold)
-	w.AddEntity(water)
 }
 
 func createEntityTile(imgName string, point engi.Point) *ecs.Entity {
 	// Create an entity part of the Render
-	guy := ecs.NewEntity([]string{"RenderSystem"})
+	entityTile := ecs.NewEntity([]string{"RenderSystem"})
 	// Retrieve a texture
 	texture := engi.Files.Image(imgName)
 	// renvoie nill si image pas chargée
+	if texture == nil {
+		log.Fatalf("image %s not loaded\n", imgName)
+	}
 
-	// Create RenderComponent... Set scale to 0.2x, give lable "guy"
-	render := engi.NewRenderComponent(texture, engi.Point{0.2, 0.2}, "guy")
-
-	log.Println(texture)
+	render := engi.NewRenderComponent(texture, engi.Point{0.2, 0.2}, "tile")
 
 	width := texture.Width() * render.Scale().X
 	height := texture.Height() * render.Scale().Y
-
 	space := &engi.SpaceComponent{point, width, height}
 
-	guy.AddComponent(render)
-	guy.AddComponent(space)
+	entityTile.AddComponent(render)
+	entityTile.AddComponent(space)
 
-	return guy
+	return entityTile
 }
 
 //Hide hide
