@@ -28,6 +28,16 @@ func (game *GameWorld) Setup(w *ecs.World) {
 	createGround(w, 3, 5, 0, "grass-600-600.png")
 	createGround(w, 3, 5, 380, "stone-600-400.png")
 	createGround(w, 3, 5, 780, "water-600-600.png")
+
+	createTower(w, 1, 3, 0, "tour1-600-600.png")
+}
+
+func createTower(w *ecs.World, abs, ord float32, padding float32, imgName string) {
+	tower := createEntityTile(imgName, engi.Point{X: abs*120 + padding, Y: ord * 120})
+	err := w.AddEntity(tower)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func createGround(w *ecs.World, width, length int, padding float32, imgName string) {
