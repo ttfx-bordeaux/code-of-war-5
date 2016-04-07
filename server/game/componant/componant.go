@@ -1,5 +1,10 @@
 package componant
 
+// Identifier componant
+type Identifier interface {
+	ID() int
+}
+
 // Positioner componant
 type Positioner interface {
 	Position() (x, y int)
