@@ -24,13 +24,13 @@ type GameTurn struct {
 }
 
 // NewGame ceate new game with clients
-func NewGame(name string) (Game, error) {
+func NewGame(name string) (*Game, error) {
 	u4, err := uuid.NewV4()
 	if err != nil {
-		return Game{}, err
+		return nil, err
 	}
 	log.Printf("create game [%s:%s]", name, u4.String())
-	return Game{
+	return &Game{
 		ID:      u4.String(),
 		Players: make(map[string]Client),
 		Maps:    make(map[string]Map),

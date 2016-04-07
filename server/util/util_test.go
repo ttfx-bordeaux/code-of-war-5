@@ -6,14 +6,14 @@ import (
 )
 
 func TestLoadArg(t *testing.T) {
-	os.Args = []string{"-test", "plop"}
-	if v := LoadArg("-test", ""); v != "plop" {
+	os.Args = []string{"-t", "--test", "plop"}
+	if v := LoadArg("--test", "", "autre"); v != "plop" {
 		t.Fail()
 	}
 }
 
 func TestLoadArgWithDefaultValue(t *testing.T) {
-	if v := LoadArg("-fail", "defaultValue"); v != "defaultValue" {
+	if v := LoadArg("-f", "--fail", "defaultValue"); v != "defaultValue" {
 		t.Fail()
 	}
 }

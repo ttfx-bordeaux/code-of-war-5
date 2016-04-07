@@ -63,14 +63,14 @@ func main() {
 	ConnectedClients = make(map[string]game.Client)
 	AllGame = make(map[string]game.Game)
 
-	gamePort := util.LoadArg("--port", "3000")
+	gamePort := util.LoadArg("--port-game", "-pg", "3000")
 	gameSrv := io.LaunchServer(gamePort, game.NewHandler(ConnectedClients))
 	defer gameSrv.Close()
 
-	adminPort := util.LoadArg("--admin-port", "4000")
+	adminPort := util.LoadArg("--port-admin", "-pa", "4000")
 	go admin.LaunchServerAdmin(adminPort, routes)
 
-	heroPort := util.LoadArg("--hero-port", "4001")
+	heroPort := util.LoadArg("--port-hero", "-ph", "4001")
 	go hero.LaunchServerHero(heroPort)
 
 	for {
