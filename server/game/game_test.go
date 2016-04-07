@@ -47,8 +47,5 @@ func TestLaunchGame(t *testing.T) {
 		if len(game.Maps[p.ID]) != 200 || len(game.Maps[p.ID][0]) != 20 {
 			t.Fatalf("Map dimension aren't correct for player %s", p.String())
 		}
-		if len(game.Base[p.ID]) != 10 || len(game.Base[p.ID][0]) != 20 {
-			t.Fatalf("Base dimension aren't correct for player %s heitgh : %d width : %d", p.String(), len(game.Base[p.ID]), len(game.Base[p.ID][0]))
-		}
 	}
 }

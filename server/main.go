@@ -23,7 +23,7 @@ var (
 	AdminActions map[string]func()
 
 	// AllGame that are created
-	AllGame map[string]game.Game
+	AllGame map[string]*game.Game
 
 	routes = admin.Routes{
 		admin.Route{
@@ -61,7 +61,7 @@ var (
 
 func main() {
 	ConnectedClients = make(map[string]game.Client)
-	AllGame = make(map[string]game.Game)
+	AllGame = make(map[string]*game.Game)
 
 	gamePort := util.LoadArg("--port-game", "-pg", "3000")
 	gameSrv := io.LaunchServer(gamePort, game.NewHandler(ConnectedClients))

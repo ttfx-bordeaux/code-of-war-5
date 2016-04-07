@@ -13,7 +13,6 @@ type Game struct {
 	Name      string
 	Players   map[string]Client
 	Maps      map[string]Map
-	Base      map[string]Map
 	gameTurns chan (GameTurn)
 	Scenario  Scenario
 }
@@ -34,7 +33,6 @@ func NewGame(name string) (*Game, error) {
 		ID:      u4.String(),
 		Players: make(map[string]Client),
 		Maps:    make(map[string]Map),
-		Base:    make(map[string]Map),
 		Name:    name,
 	}, nil
 }
@@ -61,7 +59,6 @@ func (g *Game) Launch() {
 	for _, c := range g.Players {
 		log.Printf("Player in da Game %s ", c.String())
 		g.Maps[c.ID] = NewMap(200, 20)
-		g.Base[c.ID] = g.Maps[c.ID][190:][:]
 	}
 }
 
