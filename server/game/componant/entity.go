@@ -2,29 +2,25 @@ package componant
 
 // Tower to defence a base
 type Tower struct {
-	Identifier
-	Positioner
-	Pricer
-	Healther
-	Defencer
-	Attaquer
-	id, x, y, price, currentLife, maxLife, defence, damage, distance int
+	life                                 Life
+	position                             Position
+	id, price, defence, damage, distance int
 }
 
 func (t Tower) ID() int {
 	return t.id
 }
 
-func (t Tower) Position() (int, int) {
-	return t.x, t.y
+func (t Tower) Position() Position {
+	return t.position
 }
 
 func (t Tower) Price() int {
 	return t.price
 }
 
-func (t Tower) Health() (int, int) {
-	return t.currentLife, t.maxLife
+func (t Tower) Life() Life {
+	return t.life
 }
 
 func (t Tower) Defence() int {

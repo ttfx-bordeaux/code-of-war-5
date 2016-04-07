@@ -5,9 +5,12 @@ type Identifier interface {
 	ID() int
 }
 
+// Position of an entity
+type Position struct{ x, y int }
+
 // Positioner componant
 type Positioner interface {
-	Position() (x, y int)
+	Position() Position
 }
 
 // Velociter componant
@@ -20,9 +23,12 @@ type Pricer interface {
 	Price() int
 }
 
-// Healther componant
-type Healther interface {
-	Health() (currentLife, maxLife int)
+// Life of an entity
+type Life struct{ current, max int }
+
+// Lifer componant
+type Lifer interface {
+	Life() Life
 }
 
 // Defencer componant
