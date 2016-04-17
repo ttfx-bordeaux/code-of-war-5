@@ -4,8 +4,8 @@ import (
 	"image/color"
 	"log"
 
-	"github.com/engoengine/ecs"
-	"github.com/engoengine/engo"
+	"engo.io/ecs"
+	"engo.io/engo"
 )
 
 //GameWorld world
@@ -54,7 +54,7 @@ func createGround(w *ecs.World, width, length int, padding float32, imgName stri
 
 func createEntityTile(imgName string, point engo.Point) *ecs.Entity {
 	// Create an entity part of the Render
-	entityTile := ecs.NewEntity([]string{"RenderSystem"})
+	entityTile := ecs.NewEntity("RenderSystem")
 	// Retrieve a texture
 	texture := engo.Files.Image(imgName)
 	// renvoie nill si image pas chargée
@@ -79,6 +79,9 @@ func (*GameWorld) Hide() {}
 
 //Show show
 func (*GameWorld) Show() {}
+
+//Exit
+func (*GameWorld) Exit() {}
 
 //Type type
 func (*GameWorld) Type() string { return "GameWorld" }
