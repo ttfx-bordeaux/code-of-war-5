@@ -81,7 +81,11 @@ func (*GameWorld) Hide() {}
 func (*GameWorld) Show() {}
 
 //Exit
-func (*GameWorld) Exit() {}
+func (*GameWorld) Exit() {
+	log.Println("[GAME] Exit event called")
+	//Here if you want you can prompt the user if they're sure they want to close
+	engo.Exit()
+}
 
 //Type type
 func (*GameWorld) Type() string { return "GameWorld" }
@@ -92,5 +96,6 @@ func main() {
 		Width:  1024,
 		Height: 640,
 	}
+	engo.OverrideCloseAction()
 	engo.Run(opts, &GameWorld{})
 }
