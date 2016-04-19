@@ -61,6 +61,17 @@ func (game *GameWorld) Setup(w *ecs.World) {
 	w.AddSystem(&engo.AnimationSystem{})
 	w.AddSystem(&system.ControlSystem{})
 
+	w.AddSystem(&engo.AudioSystem{})
+	w.AddSystem(&WhoopSystem{})
+
+	backgroundMusic := ecs.NewEntity("AudioSystem", "WhoopSystem")
+	backgroundMusic.AddComponent(&engo.AudioComponent{File: "sound.wav", Repeat: true, Background: true, RawVolume: 1})
+
+	err := w.AddEntity(backgroundMusic)
+	if err != nil {
+		log.Println(err)
+	}
+
 	loop := 0
 	for _, p := range players {
 		log.Println(p)
@@ -76,6 +87,21 @@ func (game *GameWorld) Setup(w *ecs.World) {
 	//createGround(w, 3, 5, 780, "water-600-600.png")
 }
 
+type WhoopSystem struct {
+	goingUp bool
+}
+
+func (WhoopSystem) Type() string             { return "WhoopSystem" }
+func (WhoopSystem) Priority() int            { return 0 }
+func (WhoopSystem) New(w *ecs.World)         {}
+func (WhoopSystem) AddEntity(*ecs.Entity)    {}
+func (WhoopSystem) RemoveEntity(*ecs.Entity) {}
+
+func (ws *WhoopSystem) Update(dt float32) {
+	engo.MasterVolume = 1
+	ws.goingUp = false
+}
+
 func createTower(w *ecs.World, p GamePosition, loop int, imgName string) {
 	tower := createEntityTower(imgName, p.toPoint(loop))
 	err := w.AddEntity(tower)
@@ -89,8 +115,7 @@ func createGround(w *ecs.World, loop int, imgName string) {
 	for j := 0; j < nbTilesOrd; j++ {
 		for i := 0; i < nbTilesAbs; i++ {
 			grass := createEntityTile(imgName, engo.Point{X: float32(i*TileWidth + padding), Y: float32(j * TileHeight)})
-			err := w.AddEntity(grass)
-			if err != nil {
+			if err := w.AddEntity(grass); err != nil {
 				log.Println(err)
 			}
 		}
