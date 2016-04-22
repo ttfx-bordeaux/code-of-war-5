@@ -62,15 +62,9 @@ func (game *GameWorld) Setup(w *ecs.World) {
 	w.AddSystem(&system.ControlSystem{})
 
 	w.AddSystem(&engo.AudioSystem{})
-	w.AddSystem(&WhoopSystem{})
+	w.AddSystem(&system.WhoopSystem{})
 
-	backgroundMusic := ecs.NewEntity("AudioSystem", "WhoopSystem")
-	backgroundMusic.AddComponent(&engo.AudioComponent{File: "sound.wav", Repeat: true, Background: true, RawVolume: 1})
-
-	err := w.AddEntity(backgroundMusic)
-	if err != nil {
-		log.Println(err)
-	}
+	createBgMusic(w)
 
 	loop := 0
 	for _, p := range players {
@@ -87,19 +81,12 @@ func (game *GameWorld) Setup(w *ecs.World) {
 	//createGround(w, 3, 5, 780, "water-600-600.png")
 }
 
-type WhoopSystem struct {
-	goingUp bool
-}
-
-func (WhoopSystem) Type() string             { return "WhoopSystem" }
-func (WhoopSystem) Priority() int            { return 0 }
-func (WhoopSystem) New(w *ecs.World)         {}
-func (WhoopSystem) AddEntity(*ecs.Entity)    {}
-func (WhoopSystem) RemoveEntity(*ecs.Entity) {}
-
-func (ws *WhoopSystem) Update(dt float32) {
-	engo.MasterVolume = 1
-	ws.goingUp = false
+func createBgMusic(w *ecs.World) {
+	bgMusic := ecs.NewEntity("AudioSystem", "WhoopSystem")
+	bgMusic.AddComponent(&engo.AudioComponent{File: "sound.wav", Repeat: true, Background: true, RawVolume: 1})
+	if err := w.AddEntity(bgMusic); err != nil {
+		log.Println(err)
+	}
 }
 
 func createTower(w *ecs.World, p GamePosition, loop int, imgName string) {
@@ -155,6 +142,7 @@ func createEntityTile(imgName string, point engo.Point) *ecs.Entity {
 	if texture == nil {
 		log.Fatalf("image %s not loaded\n", imgName)
 	}
+
 	render := engo.NewRenderComponent(texture, engo.Point{X: 0.2, Y: 0.2}, "tile")
 	width := texture.Width() * render.Scale().X
 	height := texture.Height() * render.Scale().Y
@@ -201,6 +189,8 @@ func (*GameWorld) Exit() {
 func (*GameWorld) Type() string { return "GameWorld" }
 
 func main() {
+	// see level.go
+	// tick, fps
 	players = make(map[string]*Player, 2)
 	players["1"] = &Player{Id: "1"}
 	players["2"] = &Player{Id: "2"}

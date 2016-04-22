@@ -46,3 +46,18 @@ func (c *ControlSystem) UpdateEntity(entity *ecs.Entity, dt float32) {
 		a.SelectAnimationByAction(StopAction)
 	}
 }
+
+type WhoopSystem struct {
+	goingUp bool
+}
+
+func (WhoopSystem) Type() string             { return "WhoopSystem" }
+func (WhoopSystem) Priority() int            { return 0 }
+func (WhoopSystem) New(w *ecs.World)         {}
+func (WhoopSystem) AddEntity(*ecs.Entity)    {}
+func (WhoopSystem) RemoveEntity(*ecs.Entity) {}
+
+func (ws *WhoopSystem) Update(dt float32) {
+	engo.MasterVolume = 1
+	ws.goingUp = false
+}
