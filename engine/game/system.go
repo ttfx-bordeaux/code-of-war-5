@@ -1,4 +1,4 @@
-package system
+package game
 
 import (
 	"engo.io/ecs"
@@ -45,6 +45,7 @@ func (c *ControlSystem) UpdateEntity(entity *ecs.Entity, dt float32) {
 	} else {
 		a.SelectAnimationByAction(StopAction)
 	}
+
 }
 
 type WhoopSystem struct {
@@ -61,3 +62,5 @@ func (ws *WhoopSystem) Update(dt float32) {
 	engo.MasterVolume = 1
 	ws.goingUp = false
 }
+
+// ecrire un move system

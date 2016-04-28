@@ -3,10 +3,12 @@ package main
 import (
 	"image/color"
 	"log"
+	"time"
+
+	"github.com/ttfx-bordeaux/code-of-war-5/engine/game"
 
 	"engo.io/ecs"
 	"engo.io/engo"
-	"github.com/ttfx-bordeaux/code-of-war-5/engine/game"
 )
 
 var (
@@ -23,12 +25,7 @@ var (
 	players         map[string]*Player
 )
 
-type GamePosition struct {
-	Abs int
-	Ord int
-}
-
-func (p GamePosition) toPoint(loop int) engo.Point {
+func toPoint(p game.GamePosition, loop int) engo.Point {
 	padding := loop * (nbTilesAbs*TileWidth + padRight)
 	return engo.Point{X: float32(p.Abs*TileWidth + padding), Y: float32(p.Ord * TileHeight)}
 }
@@ -44,41 +41,78 @@ type Player struct {
 type GameWorld struct{}
 
 //Preload preload
-func (game *GameWorld) Preload() {
+func (world *GameWorld) Preload() {
 	// Load all files from the data directory. Do not do it recursively.
 	engo.Files.AddFromDir("static", false)
 
-	system.Preload()
+	game.Preload()
 
 	log.Println("Preloaded")
 }
 
 //Setup setup
-func (game *GameWorld) Setup(w *ecs.World) {
+func (world *GameWorld) Setup(w *ecs.World) {
 	engo.SetBackground(backgroundColor)
 
 	w.AddSystem(&engo.RenderSystem{})
 	w.AddSystem(&engo.AnimationSystem{})
-	w.AddSystem(&system.ControlSystem{})
+	w.AddSystem(&game.ControlSystem{})
 
 	w.AddSystem(&engo.AudioSystem{})
-	w.AddSystem(&system.WhoopSystem{})
+	w.AddSystem(&game.WhoopSystem{})
 
 	createBgMusic(w)
 
-	loop := 0
+	idGround := 0
+	var chicken *ecs.Entity
 	for _, p := range players {
 		log.Println(p)
-		log.Println(loop)
-		createGround(w, loop, ImgGroundName)
-		createTower(w, GamePosition{1, 3}, loop, ImgTowerName)
-		createChicken(w, GamePosition{0, 0}, loop)
-		loop++
+		log.Println(idGround)
+		createGround(w, idGround, ImgGroundName)
+		createTower(w, game.GamePosition{1, 3}, idGround, ImgTowerName)
+		chicken = createChicken(w, game.GamePosition{0, 0}, idGround)
+		idGround++
 	}
-	// entities
-	//createGround(w, 0, ImgGroundName)
-	//createGround(w, 3, 5, 380, "stone-600-400.png")
-	//createGround(w, 3, 5, 780, "water-600-600.png")
+	go loopGame(chicken, 1)
+}
+
+func loopGame(chicken *ecs.Entity, idGround int) {
+	// loop game
+	//var time *engo.Clock
+	ticker := time.NewTicker(time.Duration(int(time.Second)))
+Outer:
+	for {
+		select {
+		case <-ticker.C:
+			cf := &game.GamePosition{}
+			space := &engo.SpaceComponent{}
+			var ok bool
+			if cf, ok = chicken.ComponentFast(cf).(*game.GamePosition); !ok {
+				log.Println("no gamePosition")
+				break Outer
+			}
+			if cf.Ord < nbTilesOrd {
+				if space, ok = chicken.ComponentFast(space).(*engo.SpaceComponent); !ok {
+					log.Println("no spaceComponent")
+					break Outer
+				}
+				cf.Ord++
+				space.Position = toPoint(*cf, idGround)
+				log.Printf("move")
+			} else {
+				break Outer
+			}
+			// call http
+			//if close {
+			//	break Outer
+			// }
+			// if !headless && window.ShouldClose() {
+			// closeEvent()
+			// }
+		}
+	}
+	log.Println("stop")
+	ticker.Stop()
 }
 
 func createBgMusic(w *ecs.World) {
@@ -89,16 +123,16 @@ func createBgMusic(w *ecs.World) {
 	}
 }
 
-func createTower(w *ecs.World, p GamePosition, loop int, imgName string) {
-	tower := createEntityTower(imgName, p.toPoint(loop))
+func createTower(w *ecs.World, p game.GamePosition, idGround int, imgName string) {
+	tower := createEntityTower(imgName, toPoint(p, idGround))
 	err := w.AddEntity(tower)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func createGround(w *ecs.World, loop int, imgName string) {
-	padding := loop * (nbTilesAbs*TileWidth + padRight)
+func createGround(w *ecs.World, idGround int, imgName string) {
+	padding := idGround * (nbTilesAbs*TileWidth + padRight)
 	for j := 0; j < nbTilesOrd; j++ {
 		for i := 0; i < nbTilesAbs; i++ {
 			grass := createEntityTile(imgName, engo.Point{X: float32(i*TileWidth + padding), Y: float32(j * TileHeight)})
@@ -109,12 +143,18 @@ func createGround(w *ecs.World, loop int, imgName string) {
 	}
 }
 
-func createChicken(w *ecs.World, p GamePosition, loop int) {
+func createChicken(w *ecs.World, p game.GamePosition, idGround int) *ecs.Entity {
 	spriteSheet := engo.NewSpritesheetFromFile("chicken.png", 150, 150)
-	err := w.AddEntity(createEntityChicken(p.toPoint(loop), spriteSheet, system.StopAction))
+	entity := createEntityChicken(toPoint(p, idGround), spriteSheet, game.StopAction)
+
+	entity.AddComponent(&p)
+
+	err := w.AddEntity(entity)
 	if err != nil {
 		log.Println(err)
 	}
+
+	return entity
 }
 
 func createEntityChicken(point engo.Point, spriteSheet *engo.Spritesheet, action *engo.AnimationAction) *ecs.Entity {
@@ -124,8 +164,8 @@ func createEntityChicken(point engo.Point, spriteSheet *engo.Spritesheet, action
 	width := 150 * render.Scale().X
 	height := 150 * render.Scale().Y
 	space := &engo.SpaceComponent{Position: point, Width: width, Height: height}
-	animation := engo.NewAnimationComponent(spriteSheet.Drawables(), system.AnimationRate)
-	animation.AddAnimationActions(system.Actions)
+	animation := engo.NewAnimationComponent(spriteSheet.Drawables(), game.AnimationRate)
+	animation.AddAnimationActions(game.Actions)
 	animation.SelectAnimationByAction(action)
 
 	entity.AddComponent(render)
