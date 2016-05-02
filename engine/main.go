@@ -72,6 +72,7 @@ func (world *DefaultScene) Preload() {
 
 //Setup setup
 func (world *DefaultScene) Setup(w *ecs.World) {
+	log.Println("call setup")
 	engo.SetBackground(backgroundColor)
 
 	renderSystem := &engo.RenderSystem{}
@@ -82,11 +83,9 @@ func (world *DefaultScene) Setup(w *ecs.World) {
 	w.AddSystem(animationSystem)
 	w.AddSystem(controlSystem)
 
-	idGround := 0
 	var chicken *chickenEntity
-	for _, p := range players {
-		log.Println(p)
-		log.Println(idGround)
+	for i := 0; i < len(players); i++ {
+		idGround := i
 		createGround(w, idGround, ImgGroundName, renderSystem)
 		createTower(w, game.PositionComponent{1, 3}, idGround, ImgTowerName, renderSystem)
 		chicken = createChicken(w, game.PositionComponent{0, 0}, idGround, renderSystem, animationSystem, controlSystem)
@@ -97,34 +96,37 @@ func (world *DefaultScene) Setup(w *ecs.World) {
 }
 
 func loopGame(chicken *chickenEntity, idGround int) {
-	// loop game
-	//var time *engo.Clock
-	ticker := time.NewTicker(time.Duration(int(time.Second)))
-Outer:
-	for {
-		select {
-		case <-ticker.C:
-			cf := &chicken.PositionComponent
-			space := &chicken.SpaceComponent
 
-			if cf.Ord < nbTilesOrd - 1 {
-				cf.Ord++
-				space.Position = toPoint(*cf, idGround)
-				log.Printf("move")
-			} else {
-				break Outer
+	cf := &chicken.PositionComponent
+	space := &chicken.SpaceComponent
+
+	if cf.Ord < nbTilesOrd - 1 {
+		cf.Ord += 10
+		finalPoint := toPoint(*cf, idGround)
+
+		loop := float32(50)
+		delta := (finalPoint.Y - space.Position.Y) * 0.2 / loop
+
+		log.Printf("finalPoint %s", finalPoint.Y)
+		log.Printf("space %s", space.Position.Y)
+		log.Printf("delta %s", delta)
+
+		ticker := time.NewTicker(time.Duration(int(100 * time.Millisecond)))
+		Outer:
+		for {
+			select {
+			case <-ticker.C:
+				space.Position.Y += delta
+				log.Printf("move %s", loop)
+				loop--
+				if (loop < float32(1)) {
+					break Outer
+				}
 			}
-			// call http
-			//if close {
-			//	break Outer
-			// }
-			// if !headless && window.ShouldClose() {
-			// closeEvent()
-			// }
 		}
+		log.Println("stop")
+		ticker.Stop()
 	}
-	log.Println("stop")
-	ticker.Stop()
 }
 
 func createTower(w *ecs.World, p game.PositionComponent, idGround int, imgName string, renderSystem *engo.RenderSystem) {
