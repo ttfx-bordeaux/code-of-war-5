@@ -1,18 +1,18 @@
 package game
 
 //GamePosition game position
-type GamePosition struct {
+type PositionComponent struct {
 	Abs int
 	Ord int
 }
 
-func NewGamePositionComponent(abs, ord int) *GamePosition {
-	return &GamePosition{
+func NewPositionComponent(abs, ord int) *PositionComponent {
+	return &PositionComponent{
 		Abs: abs,
 		Ord: ord,
 	}
 }
 
-func (p GamePosition) Type() string {
-	return "GamePositionComponenet"
+func (p PositionComponent) Type() string {
+	return "PositionComponenet"
 }

@@ -25,23 +25,43 @@ var (
 	players         map[string]*Player
 )
 
-func toPoint(p game.GamePosition, loop int) engo.Point {
+func toPoint(p game.PositionComponent, loop int) engo.Point {
 	padding := loop * (nbTilesAbs*TileWidth + padRight)
 	return engo.Point{X: float32(p.Abs*TileWidth + padding), Y: float32(p.Ord * TileHeight)}
 }
 
 type Player struct {
 	Id       string
-	Ground   []*ecs.Entity
-	towers   []*ecs.Entity
-	chickens []*ecs.Entity
+	Ground   []*ecs.BasicEntity
+	towers   []*ecs.BasicEntity
+	chickens []*ecs.BasicEntity
+}
+
+type towerEntity struct {
+	ecs.BasicEntity
+	engo.RenderComponent
+	engo.SpaceComponent
+}
+
+type chickenEntity struct {
+	ecs.BasicEntity
+	engo.AnimationComponent
+	engo.RenderComponent
+	engo.SpaceComponent
+	game.PositionComponent
+}
+
+type tileEntity struct {
+	ecs.BasicEntity
+	engo.RenderComponent
+	engo.SpaceComponent
 }
 
 //GameWorld world
-type GameWorld struct{}
+type DefaultScene struct{}
 
 //Preload preload
-func (world *GameWorld) Preload() {
+func (world *DefaultScene) Preload() {
 	// Load all files from the data directory. Do not do it recursively.
 	engo.Files.AddFromDir("static", false)
 
@@ -51,32 +71,32 @@ func (world *GameWorld) Preload() {
 }
 
 //Setup setup
-func (world *GameWorld) Setup(w *ecs.World) {
+func (world *DefaultScene) Setup(w *ecs.World) {
 	engo.SetBackground(backgroundColor)
 
-	w.AddSystem(&engo.RenderSystem{})
-	w.AddSystem(&engo.AnimationSystem{})
-	w.AddSystem(&game.ControlSystem{})
+	renderSystem := &engo.RenderSystem{}
+	animationSystem := &engo.AnimationSystem{}
+	controlSystem := &game.ControlSystem{}
 
-	w.AddSystem(&engo.AudioSystem{})
-	w.AddSystem(&game.WhoopSystem{})
-
-	createBgMusic(w)
+	w.AddSystem(renderSystem)
+	w.AddSystem(animationSystem)
+	w.AddSystem(controlSystem)
 
 	idGround := 0
-	var chicken *ecs.Entity
+	var chicken *chickenEntity
 	for _, p := range players {
 		log.Println(p)
 		log.Println(idGround)
-		createGround(w, idGround, ImgGroundName)
-		createTower(w, game.GamePosition{1, 3}, idGround, ImgTowerName)
-		chicken = createChicken(w, game.GamePosition{0, 0}, idGround)
+		createGround(w, idGround, ImgGroundName, renderSystem)
+		createTower(w, game.PositionComponent{1, 3}, idGround, ImgTowerName, renderSystem)
+		chicken = createChicken(w, game.PositionComponent{0, 0}, idGround, renderSystem, animationSystem, controlSystem)
 		idGround++
 	}
+
 	go loopGame(chicken, 1)
 }
 
-func loopGame(chicken *ecs.Entity, idGround int) {
+func loopGame(chicken *chickenEntity, idGround int) {
 	// loop game
 	//var time *engo.Clock
 	ticker := time.NewTicker(time.Duration(int(time.Second)))
@@ -84,18 +104,10 @@ Outer:
 	for {
 		select {
 		case <-ticker.C:
-			cf := &game.GamePosition{}
-			space := &engo.SpaceComponent{}
-			var ok bool
-			if cf, ok = chicken.ComponentFast(cf).(*game.GamePosition); !ok {
-				log.Println("no gamePosition")
-				break Outer
-			}
-			if cf.Ord < nbTilesOrd {
-				if space, ok = chicken.ComponentFast(space).(*engo.SpaceComponent); !ok {
-					log.Println("no spaceComponent")
-					break Outer
-				}
+			cf := &chicken.PositionComponent
+			space := &chicken.SpaceComponent
+
+			if cf.Ord < nbTilesOrd - 1 {
 				cf.Ord++
 				space.Position = toPoint(*cf, idGround)
 				log.Printf("move")
@@ -115,118 +127,82 @@ Outer:
 	ticker.Stop()
 }
 
-func createBgMusic(w *ecs.World) {
-	bgMusic := ecs.NewEntity("AudioSystem", "WhoopSystem")
-	bgMusic.AddComponent(&engo.AudioComponent{File: "sound.wav", Repeat: true, Background: true, RawVolume: 1})
-	if err := w.AddEntity(bgMusic); err != nil {
-		log.Println(err)
-	}
-}
-
-func createTower(w *ecs.World, p game.GamePosition, idGround int, imgName string) {
+func createTower(w *ecs.World, p game.PositionComponent, idGround int, imgName string, renderSystem *engo.RenderSystem) {
 	tower := createEntityTower(imgName, toPoint(p, idGround))
-	err := w.AddEntity(tower)
-	if err != nil {
-		log.Println(err)
-	}
+	renderSystem.Add(&tower.BasicEntity, &tower.RenderComponent, &tower.SpaceComponent)
 }
 
-func createGround(w *ecs.World, idGround int, imgName string) {
+func createGround(w *ecs.World, idGround int, imgName string, renderSystem *engo.RenderSystem) {
 	padding := idGround * (nbTilesAbs*TileWidth + padRight)
 	for j := 0; j < nbTilesOrd; j++ {
 		for i := 0; i < nbTilesAbs; i++ {
-			grass := createEntityTile(imgName, engo.Point{X: float32(i*TileWidth + padding), Y: float32(j * TileHeight)})
-			if err := w.AddEntity(grass); err != nil {
-				log.Println(err)
-			}
+			tile := createEntityTile(imgName, engo.Point{X: float32(i*TileWidth + padding), Y: float32(j * TileHeight)})
+			renderSystem.Add(&tile.BasicEntity, &tile.RenderComponent, &tile.SpaceComponent)
 		}
 	}
 }
 
-func createChicken(w *ecs.World, p game.GamePosition, idGround int) *ecs.Entity {
+func createChicken(w *ecs.World, p game.PositionComponent, idGround int,
+	renderSystem *engo.RenderSystem, animationSystem *engo.AnimationSystem,
+	controlSystem *game.ControlSystem) *chickenEntity {
 	spriteSheet := engo.NewSpritesheetFromFile("chicken.png", 150, 150)
-	entity := createEntityChicken(toPoint(p, idGround), spriteSheet, game.StopAction)
+	entity := createEntityChicken(toPoint(p, idGround), spriteSheet)
 
-	entity.AddComponent(&p)
+	// Add our hero to the appropriate systems
+	renderSystem.Add(&entity.BasicEntity, &entity.RenderComponent, &entity.SpaceComponent)
+	animationSystem.Add(&entity.BasicEntity, &entity.AnimationComponent, &entity.RenderComponent)
+	controlSystem.Add(&entity.BasicEntity, &entity.AnimationComponent)
 
-	err := w.AddEntity(entity)
-	if err != nil {
-		log.Println(err)
-	}
+	return entity;
+}
+
+func createEntityChicken(point engo.Point, spriteSheet *engo.Spritesheet) *chickenEntity {
+	entity := &chickenEntity{BasicEntity: ecs.NewBasic()}
+
+	entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: 150, Height: 150}
+	entity.RenderComponent = engo.NewRenderComponent(spriteSheet.Cell(0), engo.Point{X: 1, Y: 1})
+	entity.AnimationComponent = engo.NewAnimationComponent(spriteSheet.Drawables(), game.AnimationRate)
+	entity.AnimationComponent.AddAnimations(game.Actions)
+	entity.AnimationComponent.AddDefaultAnimation(game.StopAction)
 
 	return entity
 }
 
-func createEntityChicken(point engo.Point, spriteSheet *engo.Spritesheet, action *engo.AnimationAction) *ecs.Entity {
-	entity := ecs.NewEntity("AnimationSystem", "RenderSystem", "ControlSystem")
-
-	render := engo.NewRenderComponent(spriteSheet.Cell(action.Frames[0]), engo.Point{X: 1, Y: 1}, "chicken")
-	width := 150 * render.Scale().X
-	height := 150 * render.Scale().Y
-	space := &engo.SpaceComponent{Position: point, Width: width, Height: height}
-	animation := engo.NewAnimationComponent(spriteSheet.Drawables(), game.AnimationRate)
-	animation.AddAnimationActions(game.Actions)
-	animation.SelectAnimationByAction(action)
-
-	entity.AddComponent(render)
-	entity.AddComponent(space)
-	entity.AddComponent(animation)
-
-	return entity
-}
-
-func createEntityTile(imgName string, point engo.Point) *ecs.Entity {
-	entity := ecs.NewEntity("RenderSystem")
+func createEntityTile(imgName string, point engo.Point) *tileEntity {
+	entity := &tileEntity{BasicEntity: ecs.NewBasic()}
 
 	texture := engo.Files.Image(imgName)
 	if texture == nil {
 		log.Fatalf("image %s not loaded\n", imgName)
 	}
 
-	render := engo.NewRenderComponent(texture, engo.Point{X: 0.2, Y: 0.2}, "tile")
-	width := texture.Width() * render.Scale().X
-	height := texture.Height() * render.Scale().Y
-	space := &engo.SpaceComponent{Position: point, Width: width, Height: height}
-
-	entity.AddComponent(render)
-	entity.AddComponent(space)
+	entity.RenderComponent = engo.NewRenderComponent(texture, engo.Point{X: 0.2, Y: 0.2})
+	entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: texture.Width(), Height: texture.Height()}
 
 	return entity
 }
 
-func createEntityTower(imgName string, point engo.Point) *ecs.Entity {
-	entity := ecs.NewEntity("RenderSystem")
+func createEntityTower(imgName string, point engo.Point) *towerEntity {
+	entity := &towerEntity{BasicEntity: ecs.NewBasic()}
 
 	texture := engo.Files.Image(imgName)
 	if texture == nil {
 		log.Fatalf("image %s not loaded\n", imgName)
 	}
-	render := engo.NewRenderComponent(texture, engo.Point{X: 0.2, Y: 0.2}, "tile")
-	width := texture.Width() * render.Scale().X
-	height := texture.Height() * render.Scale().Y
-	space := &engo.SpaceComponent{Position: point, Width: width, Height: height}
-
-	entity.AddComponent(render)
-	entity.AddComponent(space)
+	entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: texture.Width(), Height: texture.Height()}
+	entity.RenderComponent = engo.NewRenderComponent(texture, engo.Point{X: 0.2, Y: 0.2})
 
 	return entity
 }
 
 //Hide hide
-func (*GameWorld) Hide() {}
+func (*DefaultScene) Hide() {}
 
 //Show show
-func (*GameWorld) Show() {}
-
-//Exit
-func (*GameWorld) Exit() {
-	log.Println("[GAME] Exit event called")
-	//Here if you want you can prompt the user if they're sure they want to close
-	engo.Exit()
-}
+func (*DefaultScene) Show() {}
 
 //Type type
-func (*GameWorld) Type() string { return "GameWorld" }
+func (*DefaultScene) Type() string { return "GameWorld" }
 
 func main() {
 	// see level.go
@@ -246,6 +222,5 @@ func main() {
 		Height:     screenHeight,
 		Fullscreen: false,
 	}
-	engo.OverrideCloseAction()
-	engo.Run(opts, &GameWorld{})
+	engo.Run(opts, &DefaultScene{})
 }

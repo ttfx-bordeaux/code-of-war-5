@@ -7,60 +7,54 @@ import (
 
 var (
 	AnimationRate float32 = 0.1
-	WalkAction    *engo.AnimationAction
-	StopAction    *engo.AnimationAction
-	DieAction     *engo.AnimationAction
-	Actions       []*engo.AnimationAction
+	WalkAction    *engo.Animation
+	StopAction    *engo.Animation
+	SkillAction   *engo.Animation
+	Actions       []*engo.Animation
 )
 
 func Preload() {
 	// animation for chicken
-	StopAction = &engo.AnimationAction{Name: "stop", Frames: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}}
-	WalkAction = &engo.AnimationAction{Name: "move", Frames: []int{11, 12, 13, 14, 15}}
-	DieAction = &engo.AnimationAction{Name: "die", Frames: []int{28, 29, 30}}
-	Actions = []*engo.AnimationAction{DieAction, StopAction, WalkAction}
+	StopAction = &engo.Animation{Name: "stop", Frames: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}}
+	WalkAction = &engo.Animation{Name: "move", Frames: []int{11, 12, 13, 14, 15}, Loop: true}
+	SkillAction = &engo.Animation{Name: "skill", Frames: []int{44, 45, 46, 47, 48, 49, 50, 51, 52, 53}}
+	Actions = []*engo.Animation{SkillAction, StopAction, WalkAction}
+}
+
+type controlEntity struct {
+	*ecs.BasicEntity
+	*engo.AnimationComponent
 }
 
 type ControlSystem struct {
-	ecs.LinearSystem
+	entities []controlEntity
 }
 
-func (*ControlSystem) Type() string { return "ControlSystem" }
-func (*ControlSystem) Pre()         {}
-func (*ControlSystem) Post()        {}
+func (c *ControlSystem) Add(basic *ecs.BasicEntity, anim *engo.AnimationComponent) {
+	c.entities = append(c.entities, controlEntity{basic, anim})
+}
 
-func (c *ControlSystem) New(*ecs.World) {}
-
-func (c *ControlSystem) UpdateEntity(entity *ecs.Entity, dt float32) {
-	var a *engo.AnimationComponent
-
-	if !entity.Component(&a) {
-		return
+func (c *ControlSystem) Remove(basic ecs.BasicEntity) {
+	delete := -1
+	for index, e := range c.entities {
+		if e.BasicEntity.ID() == basic.ID() {
+			delete = index
+			break
+		}
 	}
-
-	if engo.Keys.Get(engo.ArrowRight).Down() {
-		a.SelectAnimationByAction(WalkAction)
-	} else if engo.Keys.Get(engo.Space).Down() {
-		a.SelectAnimationByAction(DieAction)
-	} else {
-		a.SelectAnimationByAction(StopAction)
+	if delete >= 0 {
+		c.entities = append(c.entities[:delete], c.entities[delete+1:]...)
 	}
-
 }
 
-type WhoopSystem struct {
-	goingUp bool
-}
-
-func (WhoopSystem) Type() string             { return "WhoopSystem" }
-func (WhoopSystem) Priority() int            { return 0 }
-func (WhoopSystem) New(w *ecs.World)         {}
-func (WhoopSystem) AddEntity(*ecs.Entity)    {}
-func (WhoopSystem) RemoveEntity(*ecs.Entity) {}
-
-func (ws *WhoopSystem) Update(dt float32) {
-	engo.MasterVolume = 1
-	ws.goingUp = false
+func (c *ControlSystem) Update(dt float32) {
+	for _, e := range c.entities {
+		if engo.Keys.Get(engo.ArrowRight).Down() {
+			e.AnimationComponent.SelectAnimationByAction(WalkAction)
+		} else if engo.Keys.Get(engo.Space).Down() {
+			e.AnimationComponent.SelectAnimationByAction(SkillAction)
+		}
+	}
 }
 
 // ecrire un move system
