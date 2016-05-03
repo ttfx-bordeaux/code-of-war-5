@@ -13,12 +13,12 @@ import (
 
 var (
 	screenWidth                 = 1024
-	screenHeight                = 640
-	TileWidth       int         = 120
-	TileHeight      int         = 120
-	nbTilesAbs      int         = 3
-	nbTilesOrd      int         = 5
-	ImgGroundName   string      = "grass-600-600.png"
+	screenHeight                = 750
+	TileWidth       int         = 32
+	TileHeight      int         = 32
+	nbTilesAbs      int         = 15
+	nbTilesOrd      int         = 20
+	ImgGroundName   string      = "tile-desert-32.png"
 	ImgTowerName    string      = "tour1-600-600.png"
 	backgroundColor color.Color = color.White
 	padRight        int
@@ -63,7 +63,7 @@ type DefaultScene struct{}
 //Preload preload
 func (world *DefaultScene) Preload() {
 	// Load all files from the data directory. Do not do it recursively.
-	engo.Files.AddFromDir("static", false)
+	engo.Files.AddFromDir("static/img", false)
 
 	game.Preload()
 
@@ -147,22 +147,27 @@ func createGround(w *ecs.World, idGround int, imgName string, renderSystem *engo
 func createChicken(w *ecs.World, p game.PositionComponent, idGround int,
 	renderSystem *engo.RenderSystem, animationSystem *engo.AnimationSystem,
 	controlSystem *game.ControlSystem) *chickenEntity {
-	spriteSheet := engo.NewSpritesheetFromFile("chicken.png", 150, 150)
-	entity := createEntityChicken(toPoint(p, idGround), spriteSheet)
 
-	// Add our hero to the appropriate systems
+	entity := createEntityChicken(toPoint(p, idGround))
+
 	renderSystem.Add(&entity.BasicEntity, &entity.RenderComponent, &entity.SpaceComponent)
-	animationSystem.Add(&entity.BasicEntity, &entity.AnimationComponent, &entity.RenderComponent)
-	controlSystem.Add(&entity.BasicEntity, &entity.AnimationComponent)
+	//animationSystem.Add(&entity.BasicEntity, &entity.AnimationComponent, &entity.RenderComponent)
+	//controlSystem.Add(&entity.BasicEntity, &entity.AnimationComponent)
 
 	return entity;
 }
 
-func createEntityChicken(point engo.Point, spriteSheet *engo.Spritesheet) *chickenEntity {
+func createEntityChicken(point engo.Point) *chickenEntity {
+	spriteSheet := engo.NewSpritesheetFromFile("chicken.png", 150, 150)
+
 	entity := &chickenEntity{BasicEntity: ecs.NewBasic()}
 
-	entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: 150, Height: 150}
-	entity.RenderComponent = engo.NewRenderComponent(spriteSheet.Cell(0), engo.Point{X: 1, Y: 1})
+	texture := engo.Files.Image("chicken-32.png")
+
+	//entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: 150, Height: 150}
+	//entity.RenderComponent = engo.NewRenderComponent(spriteSheet.Cell(0), engo.Point{X: 1, Y: 1})
+	entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: texture.Width(), Height: texture.Height()}
+	entity.RenderComponent = engo.NewRenderComponent(texture, engo.Point{X: 1, Y: 1})
 	entity.AnimationComponent = engo.NewAnimationComponent(spriteSheet.Drawables(), game.AnimationRate)
 	entity.AnimationComponent.AddAnimations(game.Actions)
 	entity.AnimationComponent.AddDefaultAnimation(game.StopAction)
@@ -174,11 +179,8 @@ func createEntityTile(imgName string, point engo.Point) *tileEntity {
 	entity := &tileEntity{BasicEntity: ecs.NewBasic()}
 
 	texture := engo.Files.Image(imgName)
-	if texture == nil {
-		log.Fatalf("image %s not loaded\n", imgName)
-	}
 
-	entity.RenderComponent = engo.NewRenderComponent(texture, engo.Point{X: 0.2, Y: 0.2})
+	entity.RenderComponent = engo.NewRenderComponent(texture, engo.Point{X: 1, Y: 1})
 	entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: texture.Width(), Height: texture.Height()}
 
 	return entity
