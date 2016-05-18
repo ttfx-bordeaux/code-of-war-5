@@ -3,9 +3,6 @@ package main
 import (
 	"image/color"
 	"log"
-	"time"
-
-	"github.com/ttfx-bordeaux/code-of-war-5/engine/game"
 
 	"engo.io/ecs"
 	"engo.io/engo"
@@ -25,16 +22,12 @@ var (
 	players         map[string]*Player
 )
 
-func toPoint(p game.PositionComponent, loop int) engo.Point {
-	padding := loop * (nbTilesAbs*TileWidth + padRight)
-	return engo.Point{X: float32(p.Abs*TileWidth + padding), Y: float32(p.Ord * TileHeight)}
-}
-
 type Player struct {
 	Id       string
-	Ground   []*ecs.BasicEntity
-	towers   []*ecs.BasicEntity
-	chickens []*ecs.BasicEntity
+	IdGround int
+	ground   []*tileEntity
+	towers   []*towerEntity
+	chickens []*chickenEntity
 }
 
 type towerEntity struct {
@@ -48,7 +41,7 @@ type chickenEntity struct {
 	engo.AnimationComponent
 	engo.RenderComponent
 	engo.SpaceComponent
-	game.PositionComponent
+	*PositionComponent
 }
 
 type tileEntity struct {
@@ -65,99 +58,78 @@ func (world *DefaultScene) Preload() {
 	// Load all files from the data directory. Do not do it recursively.
 	engo.Files.AddFromDir("static/img", false)
 
-	game.Preload()
+	Preload()
 
 	log.Println("Preloaded")
 }
 
 //Setup setup
-func (world *DefaultScene) Setup(w *ecs.World) {
+func (scene *DefaultScene) Setup(w *ecs.World) {
 	log.Println("call setup")
 	engo.SetBackground(backgroundColor)
 
 	renderSystem := &engo.RenderSystem{}
 	animationSystem := &engo.AnimationSystem{}
-	controlSystem := &game.ControlSystem{}
+	controlSystem := &ControlSystem{}
+	moveSystem := &MoveSystem{}
 
-	w.AddSystem(renderSystem)
-	w.AddSystem(animationSystem)
 	w.AddSystem(controlSystem)
+	w.AddSystem(moveSystem)
+	w.AddSystem(animationSystem)
+	w.AddSystem(renderSystem)
 
-	var chicken *chickenEntity
-	for i := 0; i < len(players); i++ {
-		idGround := i
-		createGround(w, idGround, ImgGroundName, renderSystem)
-		createTower(w, game.PositionComponent{1, 3}, idGround, ImgTowerName, renderSystem)
-		chicken = createChicken(w, game.PositionComponent{0, 0}, idGround, renderSystem, animationSystem, controlSystem)
-		idGround++
+	for _, player := range players {
+		ground := createGround(w, player.IdGround, ImgGroundName, renderSystem)
+		tower := createTower(w, *NewPositionComponent(1, 3, player.IdGround), ImgTowerName, renderSystem)
+		chicken := createChicken(w, NewPositionComponent(0, 0, player.IdGround), renderSystem, animationSystem, controlSystem, moveSystem)
+
+		log.Printf("tower %v on ground %d", tower.BasicEntity.ID(), player.IdGround)
+		log.Printf("chicken %v on ground %d", chicken.BasicEntity.ID(), player.IdGround)
+
+		player.ground = ground
+		player.towers = append(player.towers, tower)
+		player.chickens = append(player.chickens, chicken)
 	}
 
-	go loopGame(chicken, 1)
+	pc := players["1"].chickens[0].PositionComponent
+	pc.changePositionTo(14, 19)
+	log.Printf("changed position to point %v", players["1"].chickens[0].PositionComponent.toPoint())
 }
 
-func loopGame(chicken *chickenEntity, idGround int) {
-
-	cf := &chicken.PositionComponent
-	space := &chicken.SpaceComponent
-
-	if cf.Ord < nbTilesOrd - 1 {
-		cf.Ord += 10
-		finalPoint := toPoint(*cf, idGround)
-
-		loop := float32(50)
-		delta := (finalPoint.Y - space.Position.Y) * 0.2 / loop
-
-		log.Printf("finalPoint %s", finalPoint.Y)
-		log.Printf("space %s", space.Position.Y)
-		log.Printf("delta %s", delta)
-
-		ticker := time.NewTicker(time.Duration(int(100 * time.Millisecond)))
-		Outer:
-		for {
-			select {
-			case <-ticker.C:
-				space.Position.Y += delta
-				log.Printf("move %s", loop)
-				loop--
-				if (loop < float32(1)) {
-					break Outer
-				}
-			}
-		}
-		log.Println("stop")
-		ticker.Stop()
-	}
-}
-
-func createTower(w *ecs.World, p game.PositionComponent, idGround int, imgName string, renderSystem *engo.RenderSystem) {
-	tower := createEntityTower(imgName, toPoint(p, idGround))
+func createTower(w *ecs.World, p PositionComponent, imgName string, renderSystem *engo.RenderSystem) *towerEntity {
+	tower := createEntityTower(imgName, p.toPoint())
 	renderSystem.Add(&tower.BasicEntity, &tower.RenderComponent, &tower.SpaceComponent)
+	return tower
 }
 
-func createGround(w *ecs.World, idGround int, imgName string, renderSystem *engo.RenderSystem) {
+func createGround(w *ecs.World, idGround int, imgName string, renderSystem *engo.RenderSystem) []*tileEntity {
+	ground := make([]*tileEntity, nbTilesOrd*nbTilesAbs)
 	padding := idGround * (nbTilesAbs*TileWidth + padRight)
 	for j := 0; j < nbTilesOrd; j++ {
 		for i := 0; i < nbTilesAbs; i++ {
 			tile := createEntityTile(imgName, engo.Point{X: float32(i*TileWidth + padding), Y: float32(j * TileHeight)})
 			renderSystem.Add(&tile.BasicEntity, &tile.RenderComponent, &tile.SpaceComponent)
+			ground = append(ground, tile)
 		}
 	}
+	return ground
 }
 
-func createChicken(w *ecs.World, p game.PositionComponent, idGround int,
+func createChicken(w *ecs.World, p *PositionComponent,
 	renderSystem *engo.RenderSystem, animationSystem *engo.AnimationSystem,
-	controlSystem *game.ControlSystem) *chickenEntity {
+	controlSystem *ControlSystem, moveSystem *MoveSystem) *chickenEntity {
 
-	entity := createEntityChicken(toPoint(p, idGround))
+	entity := createEntityChicken(p)
 
 	renderSystem.Add(&entity.BasicEntity, &entity.RenderComponent, &entity.SpaceComponent)
 	//animationSystem.Add(&entity.BasicEntity, &entity.AnimationComponent, &entity.RenderComponent)
 	//controlSystem.Add(&entity.BasicEntity, &entity.AnimationComponent)
+	moveSystem.Add(&entity.BasicEntity, entity.PositionComponent, &entity.SpaceComponent)
 
 	return entity;
 }
 
-func createEntityChicken(point engo.Point) *chickenEntity {
+func createEntityChicken(p *PositionComponent) *chickenEntity {
 	spriteSheet := engo.NewSpritesheetFromFile("chicken.png", 150, 150)
 
 	entity := &chickenEntity{BasicEntity: ecs.NewBasic()}
@@ -166,11 +138,12 @@ func createEntityChicken(point engo.Point) *chickenEntity {
 
 	//entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: 150, Height: 150}
 	//entity.RenderComponent = engo.NewRenderComponent(spriteSheet.Cell(0), engo.Point{X: 1, Y: 1})
-	entity.SpaceComponent = engo.SpaceComponent{Position: point, Width: texture.Width(), Height: texture.Height()}
+	entity.SpaceComponent = engo.SpaceComponent{Position: p.toPoint(), Width: texture.Width(), Height: texture.Height()}
 	entity.RenderComponent = engo.NewRenderComponent(texture, engo.Point{X: 1, Y: 1})
-	entity.AnimationComponent = engo.NewAnimationComponent(spriteSheet.Drawables(), game.AnimationRate)
-	entity.AnimationComponent.AddAnimations(game.Actions)
-	entity.AnimationComponent.AddDefaultAnimation(game.StopAction)
+	entity.AnimationComponent = engo.NewAnimationComponent(spriteSheet.Drawables(), AnimationRate)
+	entity.AnimationComponent.AddAnimations(Actions)
+	entity.AnimationComponent.AddDefaultAnimation(StopAction)
+	entity.PositionComponent = p
 
 	return entity
 }
@@ -212,8 +185,8 @@ func main() {
 	// see level.go
 	// tick, fps
 	players = make(map[string]*Player, 2)
-	players["1"] = &Player{Id: "1"}
-	players["2"] = &Player{Id: "2"}
+	players["1"] = &Player{Id: "1", IdGround:0}
+	players["2"] = &Player{Id: "2", IdGround:1}
 	sizeWidth := TileWidth * nbTilesAbs * len(players)
 	if sizeWidth > screenWidth {
 		padRight = 10
