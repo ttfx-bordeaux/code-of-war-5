@@ -89,24 +89,18 @@ func (m *MoveSystem) Update(dt float32) {
 	for _, e := range m.entities {
 		if e.PositionComponent.Completed == false {
 			if e.PositionComponent.NbIteration == -1 {
-				log.Println("init movement %d %v", dt, e.BasicEntity.ID())
+				log.Printf("init movement for id %v", e.BasicEntity.ID())
 				e.PositionComponent.InitDelta(e.SpaceComponent.Position)
-				log.Printf("init nb iteration %v", e.PositionComponent.NbIteration)
 			}
-			log.Printf("change before ", e.PositionComponent.Change);
 			e.PositionComponent.Change += dt
-			log.Printf("change after ", e.PositionComponent.Change);
 			if e.PositionComponent.Change >= e.PositionComponent.Rate {
-				log.Println("move %v avant %v", e.BasicEntity.ID(), e.SpaceComponent.Position)
 				e.SpaceComponent.Position.X += e.PositionComponent.DeltaX
 				e.SpaceComponent.Position.Y += e.PositionComponent.DeltaY
-				log.Println("move %v apres %v", e.BasicEntity.ID(), e.SpaceComponent.Position)
 				e.PositionComponent.Change = 0
 				e.PositionComponent.NbIteration -= 1
-				log.Printf("nb iteration %v", e.PositionComponent.NbIteration)
 			}
 			if e.PositionComponent.NbIteration <= 0 {
-				log.Println("stop movement %v", e.BasicEntity.ID())
+				log.Printf("stop movement for id %v", e.BasicEntity.ID())
 				e.PositionComponent.Completed = true
 			}
 		}

@@ -41,7 +41,7 @@ type chickenEntity struct {
 	engo.AnimationComponent
 	engo.RenderComponent
 	engo.SpaceComponent
-	*PositionComponent
+	PositionComponent
 }
 
 type tileEntity struct {
@@ -80,20 +80,16 @@ func (scene *DefaultScene) Setup(w *ecs.World) {
 
 	for _, player := range players {
 		ground := createGround(w, player.IdGround, ImgGroundName, renderSystem)
-		tower := createTower(w, *NewPositionComponent(1, 3, player.IdGround), ImgTowerName, renderSystem)
+		tower := createTower(w, NewPositionComponent(1, 3, player.IdGround), ImgTowerName, renderSystem)
 		chicken := createChicken(w, NewPositionComponent(0, 0, player.IdGround), renderSystem, animationSystem, controlSystem, moveSystem)
-
-		log.Printf("tower %v on ground %d", tower.BasicEntity.ID(), player.IdGround)
-		log.Printf("chicken %v on ground %d", chicken.BasicEntity.ID(), player.IdGround)
 
 		player.ground = ground
 		player.towers = append(player.towers, tower)
 		player.chickens = append(player.chickens, chicken)
 	}
 
-	pc := players["1"].chickens[0].PositionComponent
-	pc.changePositionTo(14, 19)
-	log.Printf("changed position to point %v", players["1"].chickens[0].PositionComponent.toPoint())
+	players["1"].chickens[0].PositionComponent.changePositionTo(14, 19)
+	players["2"].chickens[0].PositionComponent.changePositionTo(10, 2)
 }
 
 func createTower(w *ecs.World, p PositionComponent, imgName string, renderSystem *engo.RenderSystem) *towerEntity {
@@ -115,7 +111,7 @@ func createGround(w *ecs.World, idGround int, imgName string, renderSystem *engo
 	return ground
 }
 
-func createChicken(w *ecs.World, p *PositionComponent,
+func createChicken(w *ecs.World, p PositionComponent,
 	renderSystem *engo.RenderSystem, animationSystem *engo.AnimationSystem,
 	controlSystem *ControlSystem, moveSystem *MoveSystem) *chickenEntity {
 
@@ -124,12 +120,12 @@ func createChicken(w *ecs.World, p *PositionComponent,
 	renderSystem.Add(&entity.BasicEntity, &entity.RenderComponent, &entity.SpaceComponent)
 	//animationSystem.Add(&entity.BasicEntity, &entity.AnimationComponent, &entity.RenderComponent)
 	//controlSystem.Add(&entity.BasicEntity, &entity.AnimationComponent)
-	moveSystem.Add(&entity.BasicEntity, entity.PositionComponent, &entity.SpaceComponent)
+	moveSystem.Add(&entity.BasicEntity, &entity.PositionComponent, &entity.SpaceComponent)
 
 	return entity;
 }
 
-func createEntityChicken(p *PositionComponent) *chickenEntity {
+func createEntityChicken(p PositionComponent) *chickenEntity {
 	spriteSheet := engo.NewSpritesheetFromFile("chicken.png", 150, 150)
 
 	entity := &chickenEntity{BasicEntity: ecs.NewBasic()}

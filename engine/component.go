@@ -2,7 +2,6 @@ package main
 
 import (
 	"engo.io/engo"
-	"log"
 )
 
 //GamePosition game position
@@ -19,8 +18,8 @@ type PositionComponent struct {
 	NbIteration float32
 }
 
-func NewPositionComponent(abs, ord, idGround int) *PositionComponent {
-	return &PositionComponent{
+func NewPositionComponent(abs, ord, idGround int) PositionComponent {
+	return PositionComponent{
 		Abs: abs,
 		Ord: ord,
 		idGround: idGround,
@@ -31,7 +30,6 @@ func NewPositionComponent(abs, ord, idGround int) *PositionComponent {
 }
 
 func (p *PositionComponent) changePositionTo(abs, ord int) {
-	log.Println("changePosition on ground %d", p.idGround)
 	p.Abs = abs
 	p.Ord = ord
 	p.Completed = false
@@ -45,12 +43,9 @@ func (p PositionComponent) toPoint() engo.Point {
 
 func (p *PositionComponent) InitDelta(from engo.Point) {
 	to := p.toPoint()
-	log.Printf("------- from %v to point %v", from, to)
 	to.Subtract(from)
-	log.Printf("from %v to point after substract %v", from, to)
 	p.DeltaX = to.X / p.nbIteForCpltMove
 	p.DeltaY = to.Y / p.nbIteForCpltMove
-	log.Printf("delat %v %v", p.DeltaX, p.DeltaY)
 	p.NbIteration = p.nbIteForCpltMove
 }
 
